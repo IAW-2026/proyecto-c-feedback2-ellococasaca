@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   FEEDBACK_WINDOW_CONTENT,
+  FEEDBACK_WINDOW_ROLES,
   getAccessibleFeedbackWindows,
 } from "@/lib/feedback-permissions";
 import { currentUser } from "@clerk/nextjs/server";
@@ -26,7 +27,7 @@ export default async function FeedbackHubPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {(accessibleWindows.length > 0 ? accessibleWindows : ["buyer", "seller", "admin"]).map((role) => {
+        {(accessibleWindows.length > 0 ? accessibleWindows : FEEDBACK_WINDOW_ROLES).map((role) => {
           const content = FEEDBACK_WINDOW_CONTENT[role];
 
           return (
