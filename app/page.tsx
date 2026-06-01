@@ -4,6 +4,7 @@ import {
   SignUpButton,
   UserButton,
 } from "@clerk/nextjs";
+import { APP_ROLES } from "@/lib/clerk-roles";
 
 export default function Home() {
   return (
@@ -116,6 +117,26 @@ export default function Home() {
                 <div className="rounded-3xl border border-dashed border-slate-300 px-5 py-4 text-sm leading-6 text-slate-600">
                   La aplicacion ya queda lista para sumar rutas protegidas y
                   validar roles como buyer, seller y admin desde el servidor.
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                    Roles soportados en Clerk
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {APP_ROLES.map((role) => (
+                      <span
+                        key={role}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-800"
+                      >
+                        {role}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    Estos valores viven en <span className="font-medium">publicMetadata.roles</span> y pueden combinarse
+                    si un mismo usuario cumple varios perfiles.
+                  </p>
                 </div>
               </div>
             </div>
