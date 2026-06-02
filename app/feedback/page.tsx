@@ -5,11 +5,11 @@ import {
   getAccessibleFeedbackWindows,
 } from "@/lib/feedback-permissions";
 import { currentUser } from "@clerk/nextjs/server";
-import { normalizeRoles, type AppPublicMetadata } from "@/lib/clerk-roles";
+import { normalizeRoles } from "@/lib/clerk-roles";
 
 export default async function FeedbackHubPage() {
   const user = await currentUser();
-  const roles = normalizeRoles((user?.publicMetadata as AppPublicMetadata | undefined)?.roles);
+  const roles = normalizeRoles(user?.publicMetadata);
   const accessibleWindows = getAccessibleFeedbackWindows(roles);
 
   return (

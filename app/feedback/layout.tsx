@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import {
   APP_ROLES,
   normalizeRoles,
-  type AppPublicMetadata,
 } from "@/lib/clerk-roles";
 import {
   FEEDBACK_WINDOW_CONTENT,
@@ -12,8 +11,8 @@ import {
   getPrimaryFeedbackRole,
 } from "@/lib/feedback-permissions";
 
-function getRolesFromUser(userRoles: AppPublicMetadata | undefined) {
-  return normalizeRoles(userRoles?.roles);
+function getRolesFromUser(userMetadata: unknown) {
+  return normalizeRoles(userMetadata);
 }
 
 export default async function FeedbackLayout({
@@ -22,7 +21,7 @@ export default async function FeedbackLayout({
   children: React.ReactNode;
 }>) {
   const user = await currentUser();
-  const roles = getRolesFromUser(user?.publicMetadata as AppPublicMetadata | undefined);
+  const roles = getRolesFromUser(user?.publicMetadata);
   const accessibleWindows = getAccessibleFeedbackWindows(roles);
   const primaryRole = getPrimaryFeedbackRole(roles);
 
