@@ -13,10 +13,10 @@ Permite a compradores calificar productos y vendedores, gestionar reportes y mod
 
 | Rol | Usuario | Mail | Contraseña |
 |-----|---------|------|------------|
-| Admin | `admin` | admin.feedback@example.com | `Admin456456#` |
-| Moderator | `moderator` | moderator.feedback@example.com | `Moderator456456#` |
-| Seller | `seller` | seller.feedback@example.com | `Seller456456#` |
-| Buyer | `buyer` | buyer.feedback@example.com | `Buyer456456#` |
+| Admin | `adminTest` | admin+clerk_test@iaw.com | `iawuser#` |
+| Moderator | `moderator` | moderator+clerk_test@iaw.com | `iawuser#` |
+| Seller | `seller` | seller+clerk_test@iaw.com | `iawuser#` |
+| Buyer | `buyer` | buyer+clerk_test@iaw.com | `iawuser#` |
 
 ---
 
@@ -89,6 +89,10 @@ npm run seed:mock    # cargar datos de prueba
 ```
 
 ---
+
+## Cuestiones a tener en cuenta
+- EL diseño de las paginas es basico y utilizando la IA, no seria el definitivo.
+- Ingresar reseñas es molesto al tener que ingresar a mano los campos de IDs de producto y orden de compra, no busca las ordenes para reseñar.
 
 ## Integrante responsable
 
