@@ -16,15 +16,15 @@
 INSERT INTO "ReviewEligibility" ("id","orderId","shipmentId","buyerId","sellerId","productIds","deliveredAt","enabled","createdAt")
 VALUES
   ('elig_001','order_001','ship_001',
-   'user_3EY16ziKMUxsmaAXntfuJajRpIR','user_3EY1BlufGgMT4Sbl0VIjABwoIUe',
+   'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq',
    ARRAY['product_001','product_002'],NOW(),TRUE,NOW()),
 
   ('elig_002','order_002','ship_002',
-   'user_3EY16ziKMUxsmaAXntfuJajRpIR','user_3EY1BlufGgMT4Sbl0VIjABwoIUe',
+   'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq',
    ARRAY['product_003'],NOW(),TRUE,NOW()),
 
   ('elig_003','order_003','ship_003',
-   'user_3EY16ziKMUxsmaAXntfuJajRpIR','user_3EY1BlufGgMT4Sbl0VIjABwoIUe',
+   'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq',
    ARRAY['product_001'],NOW() - INTERVAL '5 days',TRUE,NOW() - INTERVAL '5 days')
 ON CONFLICT ("orderId") DO UPDATE SET
   "buyerId"    = EXCLUDED."buyerId",
@@ -40,35 +40,35 @@ INSERT INTO "Review" ("id","orderId","buyerId","sellerId","productId","ratingPro
 VALUES
   -- PUBLISHED, not moderated
   ('rev_001','order_004',
-   'user_3EY16ziKMUxsmaAXntfuJajRpIR','user_3EY1BlufGgMT4Sbl0VIjABwoIUe','product_001',
+   'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_001',
    5,5,
    'Excelente camiseta, llegó perfecta y en tiempo. El vendedor fue muy atento.',
    'PUBLISHED',FALSE,NOW() - INTERVAL '10 days',NOW() - INTERVAL '10 days'),
 
   -- PUBLISHED, not moderated
   ('rev_002','order_005',
-   'user_3EY16ziKMUxsmaAXntfuJajRpIR','user_3EY1BlufGgMT4Sbl0VIjABwoIUe','product_002',
+   'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_002',
    4,4,
    'Muy buena calidad, fiel a las fotos. Demoró un poco más de lo esperado pero llegó bien.',
    'PUBLISHED',FALSE,NOW() - INTERVAL '7 days',NOW() - INTERVAL '7 days'),
 
   -- PUBLISHED, moderated (was reviewed by moderator)
   ('rev_003','order_006',
-   'user_3EY16ziKMUxsmaAXntfuJajRpIR','user_3EY1BlufGgMT4Sbl0VIjABwoIUe','product_003',
+   'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_003',
    3,4,
    'La camiseta era buena pero el talle no coincidía con la descripción.',
    'PUBLISHED',TRUE,NOW() - INTERVAL '5 days',NOW() - INTERVAL '3 days'),
 
   -- HIDDEN por moderación
   ('rev_004','order_007',
-   'user_3EY16ziKMUxsmaAXntfuJajRpIR','user_3EY1BlufGgMT4Sbl0VIjABwoIUe','product_001',
+   'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_001',
    1,1,
    'Contenido inapropiado ocultado por moderación.',
    'HIDDEN',TRUE,NOW() - INTERVAL '4 days',NOW() - INTERVAL '2 days'),
 
   -- PUBLISHED, rating bajo — genera variedad en el promedio
   ('rev_005','order_008',
-   'user_3EY16ziKMUxsmaAXntfuJajRpIR','user_3EY1BlufGgMT4Sbl0VIjABwoIUe','product_002',
+   'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_002',
    2,3,
    'El bordado estaba mal hecho y el color no era el mismo que en las fotos.',
    'PUBLISHED',FALSE,NOW() - INTERVAL '2 days',NOW() - INTERVAL '2 days')
