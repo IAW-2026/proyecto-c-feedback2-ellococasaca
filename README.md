@@ -90,6 +90,10 @@ npm run seed:mock    # cargar datos de prueba
 
 ---
 
+## Cuestiones a tener en cuenta
+- EL diseño de las paginas es basico y utilizando la IA, no seria el definitivo.
+- Ingresar reseñas es molesto al tener que ingresar a mano los campos de IDs de producto y orden de compra, no busca las ordenes para reseñar.
+
 ## Integrante responsable
 
 **Jeremias Eloy Segurado Negrin** — Feedback App
