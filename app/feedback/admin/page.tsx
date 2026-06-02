@@ -4,11 +4,37 @@ import {
 } from "@/lib/feedback-permissions";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { normalizeRoles, type AppPublicMetadata } from "@/lib/clerk-roles";
+import { normalizeRoles } from "@/lib/clerk-roles";
+import { prisma } from "@/lib/prisma";
 
-export default async function AdminFeedbackPage() {
+export default async function AdminFeedbackPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const user = await currentUser();
-  const roles = normalizeRoles((user?.publicMetadata as AppPublicMetadata | undefined)?.roles);
+  const roles = normalizeRoles(user?.publicMetadata);
+  const { q = "" } = await searchParams;
+
+  const query = q.trim();
+
+  const reviews = await prisma.review.findMany({
+    where: query
+      ? {
+          OR: [
+            { orderId: { contains: query, mode: "insensitive" } },
+            { buyerId: { contains: query, mode: "insensitive" } },
+            { sellerId: { contains: query, mode: "insensitive" } },
+            { productId: { contains: query, mode: "insensitive" } },
+            { comment: { contains: query, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 50,
+  });
 
   if (!roles.includes("admin")) {
     redirect("/feedback");
@@ -41,27 +67,37 @@ export default async function AdminFeedbackPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">
             Buscador global
           </p>
-          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_180px]">
+          <form className="mt-4 grid gap-3 md:grid-cols-[1fr_180px]" method="get">
             <input
+              name="q"
+              defaultValue={query}
               className="rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
               placeholder="Buscar por usuario, producto, orderId o texto del comentario"
             />
-            <button className="rounded-2xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950">
+            <button type="submit" className="rounded-2xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950">
               Buscar
             </button>
-          </div>
+          </form>
 
           <div className="mt-5 space-y-3">
-            <MockReview
-              author="user_123"
-              product="Camiseta retro"
-              comment="Excelente estado"
-            />
-            <MockReview
-              author="user_456"
-              product="Camiseta titular"
-              comment="Llegó con demora"
-            />
+            {reviews.length > 0 ? (
+              reviews.map((review) => (
+                <MockReview
+                  key={review.id}
+                  author={review.buyerId}
+                  sellerId={review.sellerId}
+                  orderId={review.orderId}
+                  product={`Producto ${review.productId}`}
+                  comment={review.comment}
+                  ratingProduct={review.ratingProduct}
+                  ratingSeller={review.ratingSeller}
+                />
+              ))
+            ) : (
+              <p className="rounded-3xl border border-dashed border-white/15 bg-slate-900 px-4 py-6 text-sm text-slate-300">
+                No hay reseñas para mostrar con el filtro actual.
+              </p>
+            )}
           </div>
         </section>
 
@@ -92,19 +128,28 @@ function Card({
 
 function MockReview({
   author,
+  sellerId,
+  orderId,
   product,
   comment,
+  ratingProduct,
+  ratingSeller,
 }: {
   author: string;
+  sellerId: string;
+  orderId: string;
   product: string;
   comment: string;
+  ratingProduct: number;
+  ratingSeller: number;
 }) {
   return (
     <article className="rounded-3xl border border-white/10 bg-slate-900 px-4 py-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-white">{product}</p>
-          <p className="text-xs text-slate-400">Autor: {author}</p>
+          <p className="text-xs text-slate-400">Buyer: {author} · Seller: {sellerId}</p>
+          <p className="text-xs text-slate-400">Order: {orderId}</p>
         </div>
         <div className="flex gap-2">
           <button className="rounded-full border border-white/10 px-3 py-1 text-xs font-medium text-slate-200">
@@ -115,6 +160,7 @@ function MockReview({
           </button>
         </div>
       </div>
+      <p className="mt-3 text-xs text-slate-400">Rating producto: {ratingProduct}/5 · Rating seller: {ratingSeller}/5</p>
       <p className="mt-3 text-sm leading-6 text-slate-300">{comment}</p>
     </article>
   );

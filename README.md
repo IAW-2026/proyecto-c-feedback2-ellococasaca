@@ -8,3 +8,15 @@ Esta app corresponde al módulo de reseñas y calificaciones en los proyectos de
 ---
 
 Enunciado completo: <https://iaw-2026.github.io/proyecto/>
+
+
+Comandos utilies
+
+
+npm run seed:mock
+
+npm run lint
+npx prisma validate   # si lo usás
+npm run build
+# y/o levantar localmente:
+npm run dev
