@@ -47,6 +47,29 @@ export async function moderateReviewAction(reviewId: string, newStatus: "HIDDEN"
 }
 
 /**
+ * Acción para que un Moderador o Admin resuelva o descarte un reporte.
+ */
+export async function resolveReportAction(
+  reportId: string,
+  resolution: "RESOLVED" | "DISMISSED",
+) {
+  const user = await currentUser();
+  const roles = normalizeRoles(user?.publicMetadata);
+
+  const canModerate = roles.includes("moderator") || roles.includes("admin");
+  if (!canModerate) {
+    throw new Error("No tienes permisos de moderación.");
+  }
+
+  await prisma.reviewReport.update({
+    where: { id: reportId },
+    data: { status: resolution },
+  });
+
+  revalidatePath("/feedback/moderator");
+}
+
+/**
  * Obtener feedback con filtros (Búsqueda global).
  */
 export async function getGlobalFeedbackAction(query: string) {

@@ -82,6 +82,16 @@ export default async function SellerFeedbackPage() {
                     {review.status}
                   </span>
                 </div>
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-slate-950 px-3 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Rating producto</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{review.ratingProduct}/5</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-slate-950 px-3 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Rating vendedor</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{review.ratingSeller}/5</p>
+                  </div>
+                </div>
                 <p className="mt-3 text-sm leading-6 text-slate-300">{review.comment}</p>
               </article>
             ))}
