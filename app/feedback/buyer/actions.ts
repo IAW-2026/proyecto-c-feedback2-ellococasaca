@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { refreshRatingsCache } from "@/lib/ratings-cache";
+import { moderateComment } from "@/lib/moderation";
 
 export type BuyerReviewActionState = {
   message?: string;
@@ -112,6 +113,18 @@ export async function createBuyerReview(
     };
   }
 
+  const moderation = await moderateComment(comment, { productId, orderId });
+
+  const reviewStatus =
+    moderation.outcome === "APPROVED"
+      ? "PUBLISHED"
+      : moderation.outcome === "REJECTED"
+        ? "HIDDEN"
+        : "PENDING";
+
+  const reviewIsModerated =
+    moderation.method === "ai" || moderation.outcome !== "APPROVED";
+
   try {
     await prisma.review.create({
       data: {
@@ -122,8 +135,8 @@ export async function createBuyerReview(
         ratingProduct: ratingProductValue,
         ratingSeller: ratingSellerValue,
         comment,
-        status: "PUBLISHED",
-        isModerated: false,
+        status: reviewStatus,
+        isModerated: reviewIsModerated,
       },
     });
   } catch (error) {
@@ -135,10 +148,22 @@ export async function createBuyerReview(
     };
   }
 
-  await refreshRatingsCache(productId, eligibility.sellerId);
+  if (moderation.outcome === "APPROVED") {
+    await refreshRatingsCache(productId, eligibility.sellerId);
+  }
   revalidatePath("/feedback/buyer");
 
-  return {
-    message: "La reseña fue creada correctamente.",
-  };
+  if (moderation.outcome === "REJECTED") {
+    return {
+      message:
+        "Tu reseña fue registrada pero no pudo publicarse porque contiene contenido inapropiado.",
+    };
+  }
+  if (moderation.outcome === "MANUAL_REVIEW") {
+    return {
+      message:
+        "Tu reseña está siendo revisada por nuestro equipo antes de publicarse.",
+    };
+  }
+  return { message: "La reseña fue creada correctamente." };
 }
