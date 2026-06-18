@@ -1,6 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
-
-export type AiVerdict = "APPROVED" | "REJECTED" | "MANUAL_REVIEW";
+﻿export type AiVerdict = "APPROVED" | "REJECTED" | "MANUAL_REVIEW";
 
 export interface AiModerationContext {
   productId: string;
@@ -9,54 +7,80 @@ export interface AiModerationContext {
   matchedLabels: string[];
 }
 
+interface OpenAIModerationResult {
+  flagged?: boolean;
+  categories?: Record<string, boolean>;
+  category_scores?: Record<string, number>;
+}
+
+interface OpenAIModerationResponse {
+  results?: OpenAIModerationResult[];
+  error?: { message?: string };
+}
+
+const OPENAI_MODERATION_MODEL = "omni-moderation-latest";
+
+function getFlaggedCategories(result: OpenAIModerationResult): string[] {
+  return Object.entries(result.categories ?? {})
+    .filter(([, flagged]) => flagged)
+    .map(([category]) => category);
+}
+
+function shouldReject(result: OpenAIModerationResult): boolean {
+  const flaggedCategories = getFlaggedCategories(result);
+  const scores = result.category_scores ?? {};
+  const hasSevereCategory = flaggedCategories.some((category) =>
+    [
+      "hate/threatening",
+      "harassment/threatening",
+      "self-harm/instructions",
+      "sexual/minors",
+      "violence/graphic",
+    ].includes(category),
+  );
+
+  return hasSevereCategory || Object.values(scores).some((score) => score >= 0.85);
+}
+
 export async function consultAI(
   comment: string,
   context: AiModerationContext,
 ): Promise<AiVerdict> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  void context;
+
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.error("[moderation] ANTHROPIC_API_KEY no configurada — derivando a MANUAL_REVIEW");
+    console.error("[moderation] OPENAI_API_KEY no configurada; derivando a MANUAL_REVIEW");
     return "MANUAL_REVIEW";
   }
 
-  const client = new Anthropic({ apiKey });
-
-  const prompt = `Sos un moderador de reseñas de un marketplace argentino. Analizá el comentario y decidí si debe publicarse, rechazarse o ir a revisión manual.
-
-El detector local encontró indicadores: ${context.matchedLabels.join(", ")} (puntaje: ${context.score}).
-
-Comentario:
-"""
-${comment}
-"""
-
-Criterios:
-- APPROVED: crítica legítima del producto/servicio, aunque use lenguaje coloquial o sea muy directa.
-- REJECTED: insultos personales contra el vendedor, amenazas, acoso o contenido explícito.
-- MANUAL_REVIEW: contexto genuinamente ambiguo que requiere revisión humana.
-
-Respondé únicamente con JSON: {"verdict": "APPROVED" | "REJECTED" | "MANUAL_REVIEW"}`;
-
   try {
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 50,
-      messages: [{ role: "user", content: prompt }],
+    const response = await fetch("https://api.openai.com/v1/moderations", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: OPENAI_MODERATION_MODEL,
+        input: comment,
+      }),
     });
 
-    const block = response.content[0];
-    if (block.type !== "text") return "MANUAL_REVIEW";
+    const data = (await response.json()) as OpenAIModerationResponse;
 
-    const parsed = JSON.parse(block.text.trim()) as { verdict: string };
-    if (
-      parsed.verdict === "APPROVED" ||
-      parsed.verdict === "REJECTED" ||
-      parsed.verdict === "MANUAL_REVIEW"
-    ) {
-      return parsed.verdict;
+    if (!response.ok) {
+      throw new Error(data.error?.message ?? `OpenAI moderation failed with ${response.status}`);
     }
+
+    const result = data.results?.[0];
+    if (!result) return "MANUAL_REVIEW";
+
+    if (!result.flagged) return "APPROVED";
+
+    return shouldReject(result) ? "REJECTED" : "MANUAL_REVIEW";
   } catch (err) {
-    console.error("[moderation] Error al consultar IA:", err);
+    console.error("[moderation] Error al consultar OpenAI:", err);
   }
 
   return "MANUAL_REVIEW";

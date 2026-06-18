@@ -1,4 +1,4 @@
-import { SEVERE, MODERATE, MILD, type WordEntry } from "./word-list";
+﻿import { SEVERE, MODERATE, MILD, type WordEntry } from "./word-list";
 
 export interface ScorerMatch {
   label: string;
@@ -11,12 +11,19 @@ export interface ScorerResult {
   matches: ScorerMatch[];
 }
 
-// Strips accents so patterns work without accent variants (e.g. "estúpido" → "estupido")
 function normalize(text: string): string {
   return text
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[@4]/g, "a")
+    .replace(/3/g, "e")
+    .replace(/[1!]/g, "i")
+    .replace(/0/g, "o")
+    .replace(/[$5]/g, "s")
+    .replace(/[^a-z0-9\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function matchEntries(normalized: string, entries: WordEntry[]): ScorerMatch[] {
@@ -38,6 +45,6 @@ export function scoreComment(text: string): ScorerResult {
     ...matchEntries(normalized, MODERATE),
     ...matchEntries(normalized, MILD),
   ];
-  const score = matches.reduce((sum, m) => sum + m.weight * m.count, 0);
+  const score = matches.reduce((sum, match) => sum + match.weight * match.count, 0);
   return { score, matches };
 }
