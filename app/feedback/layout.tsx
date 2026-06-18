@@ -1,10 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  APP_ROLES,
-  normalizeRoles,
-} from "@/lib/clerk-roles";
+import { normalizeRoles } from "@/lib/clerk-roles";
 import {
   FEEDBACK_WINDOW_CONTENT,
   getAccessibleFeedbackWindows,
@@ -42,7 +39,7 @@ export default async function FeedbackLayout({
                 {primaryRole ? FEEDBACK_WINDOW_CONTENT[primaryRole].title : "Ventanas de feedback"}
               </h1>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
-                Tres vistas separadas según rol, con permisos distintos para crear, mirar y eliminar reseñas.
+                Plataforma de reseñas, calificaciones y moderación del marketplace.
               </p>
             </div>
 
@@ -69,14 +66,6 @@ export default async function FeedbackLayout({
                 </Link>
               ))}
             </nav>
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2 text-xs text-slate-300">
-            {APP_ROLES.map((role) => (
-              <span key={role} className="rounded-full border border-white/10 px-3 py-1">
-                {role}
-              </span>
-            ))}
           </div>
         </header>
 

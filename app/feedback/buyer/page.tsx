@@ -1,7 +1,4 @@
-import {
-  FEEDBACK_WINDOW_CONTENT,
-  getRolePermissionSummary,
-} from "@/lib/feedback-permissions";
+import { FEEDBACK_WINDOW_CONTENT } from "@/lib/feedback-permissions";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { normalizeRoles } from "@/lib/clerk-roles";
@@ -32,8 +29,6 @@ export default async function BuyerFeedbackPage() {
       })
     : [];
 
-  const permissions = getRolePermissionSummary("buyer");
-
   return (
     <div className="space-y-6">
       <div>
@@ -46,15 +41,6 @@ export default async function BuyerFeedbackPage() {
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
           Acá el comprador puede crear una reseña solo sobre un producto que compró y recibió; no puede borrar feedback.
         </p>
-        <p className="mt-3 inline-flex flex-wrap gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-200">
-          Roles detectados: {roles.length > 0 ? roles.join(", ") : "sin roles"}
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card label="Crear" value={permissions.canCreate ? "Permitido" : "No permitido"} tone={permissions.canCreate ? "green" : "slate"} />
-        <Card label="Mirar" value={permissions.canView ? "Permitido" : "No permitido"} tone="green" />
-        <Card label="Eliminar" value={permissions.canDelete ? "Permitido" : "No permitido"} tone={permissions.canDelete ? "green" : "slate"} />
       </div>
 
       <BuyerReviewForm />
@@ -110,23 +96,6 @@ export default async function BuyerFeedbackPage() {
           )}
         </div>
       </section>
-    </div>
-  );
-}
-
-function Card({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "green" | "slate";
-}) {
-  return (
-    <div className={`rounded-[1.75rem] border p-5 ${tone === "green" ? "border-emerald-400/30 bg-emerald-500/10" : "border-white/10 bg-slate-950"}`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">{label}</p>
-      <p className="mt-3 text-lg font-semibold text-white">{value}</p>
     </div>
   );
 }
