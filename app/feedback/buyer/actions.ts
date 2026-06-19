@@ -126,21 +126,28 @@ export async function createBuyerReview(
     moderation.method === "openai" || moderation.outcome !== "APPROVED";
 
   try {
-    await prisma.review.create({
-      data: {
-        orderId,
-        buyerId: userId,
-        sellerId: eligibility.sellerId,
-        productId,
-        ratingProduct: ratingProductValue,
-        ratingSeller: ratingSellerValue,
-        comment,
-        status: reviewStatus,
-        isModerated: reviewIsModerated,
-        moderationReason: buildModerationReportReason(moderation),
-      },
-    });
+    await prisma.$transaction([
+      prisma.review.create({
+        data: {
+          orderId,
+          buyerId: userId,
+          sellerId: eligibility.sellerId,
+          productId,
+          ratingProduct: ratingProductValue,
+          ratingSeller: ratingSellerValue,
+          comment,
+          status: reviewStatus,
+          isModerated: reviewIsModerated,
+          moderationReason: buildModerationReportReason(moderation),
+        },
+      }),
+      prisma.reviewEligibility.update({
+        where: { orderId },
+        data: { enabled: false },
+      }),
+    ]);
   } catch (error) {
+    console.error("[createBuyerReview] prisma.review.create falló:", error);
     return {
       error:
         error instanceof Error && error.message.includes("Unique constraint")

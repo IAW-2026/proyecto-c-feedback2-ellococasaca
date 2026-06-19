@@ -34,6 +34,26 @@ Permite a compradores calificar productos y vendedores, gestionar reportes y mod
 
 ---
 
+## Condiciones para publicar una reseña (Buyer)
+
+Para que un buyer pueda crear una reseña, se validan estas condiciones en orden:
+
+1. **El usuario debe estar autenticado** y tener el rol `buyer` en Clerk.
+2. **Debe existir una `ReviewEligibility` habilitada** para el `orderId` ingresado — la crea la Shipping App al registrar una entrega.
+3. **El `buyerId` de la eligibility debe coincidir** con el usuario logueado — un buyer no puede reseñar una orden que no es suya.
+4. **La eligibility debe estar activa** (`enabled: true`) — una vez usada se marca `false` para evitar doble envío.
+5. **El `productId` ingresado debe pertenecer a esa orden** — se verifica contra el array `productIds` de la eligibility.
+6. **El comentario pasa por moderación automática** antes de guardarse:
+   - Score **< 15** → aprobado localmente → `PUBLISHED`
+   - Score **15–49** → dudoso → se consulta a OpenAI:
+     - OpenAI aprueba → `PUBLISHED` (isModerated: true)
+     - OpenAI rechaza → `HIDDEN` (isModerated: true)
+     - OpenAI no disponible → `PENDING` para revisión manual
+   - Score **≥ 50** → rechazado localmente → `HIDDEN`
+7. **Solo se permite una reseña por orden** (`orderId` único en `Review`). No importa cuántos productos tenga la orden — se elige uno al crear la reseña.
+
+---
+
 ## Stack tecnológico
 
 - **Framework:** Next.js 16 (App Router, Server Components, Server Actions)
@@ -86,6 +106,9 @@ npm run dev          # desarrollo local
 npm run build        # build de producción
 npm run lint         # linter
 npm run seed:mock    # cargar datos de prueba
+npm run db:reset     # ← el nuevo: TRUNCA todo + recarga el mock desde cero
+npm run seed:mock    # solo recarga el mock (sin borrar lo que ya está)
+npx prisma studio    # explorador visual en localhost:5555
 ```
 
 ---
