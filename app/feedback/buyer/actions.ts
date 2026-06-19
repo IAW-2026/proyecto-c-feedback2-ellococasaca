@@ -123,7 +123,7 @@ export async function createBuyerReview(
         : "PENDING";
 
   const reviewIsModerated =
-    moderation.method === "ai" || moderation.outcome !== "APPROVED";
+    moderation.method === "openai" || moderation.outcome !== "APPROVED";
 
   try {
     await prisma.review.create({
