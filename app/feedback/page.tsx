@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   FEEDBACK_WINDOW_CONTENT,
   FEEDBACK_WINDOW_ROLES,
@@ -11,6 +12,9 @@ export default async function FeedbackHubPage() {
   const user = await currentUser();
   const roles = normalizeRoles(user?.publicMetadata);
   const accessibleWindows = getAccessibleFeedbackWindows(roles);
+
+  if (roles.includes("admin")) redirect("/feedback/admin");
+  if (roles.includes("moderator")) redirect("/feedback/moderator");
 
   return (
     <div className="space-y-6">
