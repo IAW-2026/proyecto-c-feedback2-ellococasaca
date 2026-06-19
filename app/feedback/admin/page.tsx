@@ -121,6 +121,7 @@ function ReviewCard({
     comment: string;
     status: string;
     isModerated: boolean;
+    moderationReason: string | null;
   };
 }) {
   const deleteWithId = deleteReviewAction.bind(null, review.id);
@@ -164,6 +165,12 @@ function ReviewCard({
       </div>
 
       <p className="mt-3 text-sm leading-6 text-slate-300">{review.comment}</p>
+
+      {review.moderationReason && (
+        <p className="mt-3 rounded-2xl border border-violet-400/20 bg-violet-500/5 px-4 py-2 font-mono text-xs text-violet-300">
+          {review.moderationReason}
+        </p>
+      )}
     </article>
   );
 }

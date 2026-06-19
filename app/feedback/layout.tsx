@@ -1,4 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
+import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { normalizeRoles } from "@/lib/clerk-roles";
@@ -43,18 +44,12 @@ export default async function FeedbackLayout({
               </p>
             </div>
 
-            <nav className="flex flex-wrap gap-2">
+            <nav className="flex flex-wrap items-center gap-2">
               <Link
                 className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10"
                 href="/"
               >
                 Inicio
-              </Link>
-              <Link
-                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10"
-                href="/feedback"
-              >
-                Hub de feedback
               </Link>
               {accessibleWindows.map((role) => (
                 <Link
@@ -65,6 +60,7 @@ export default async function FeedbackLayout({
                   {role}
                 </Link>
               ))}
+              <UserButton />
             </nav>
           </div>
         </header>

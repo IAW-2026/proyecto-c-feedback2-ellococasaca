@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { refreshRatingsCache } from "@/lib/ratings-cache";
+import { moderateComment, buildModerationReportReason } from "@/lib/moderation";
 
 export type BuyerReviewActionState = {
   message?: string;
@@ -112,21 +113,41 @@ export async function createBuyerReview(
     };
   }
 
+  const moderation = await moderateComment(comment, { productId, orderId });
+
+  const reviewStatus =
+    moderation.outcome === "APPROVED"
+      ? "PUBLISHED"
+      : moderation.outcome === "REJECTED"
+        ? "HIDDEN"
+        : "PENDING";
+
+  const reviewIsModerated =
+    moderation.method === "openai" || moderation.outcome !== "APPROVED";
+
   try {
-    await prisma.review.create({
-      data: {
-        orderId,
-        buyerId: userId,
-        sellerId: eligibility.sellerId,
-        productId,
-        ratingProduct: ratingProductValue,
-        ratingSeller: ratingSellerValue,
-        comment,
-        status: "PUBLISHED",
-        isModerated: false,
-      },
-    });
+    await prisma.$transaction([
+      prisma.review.create({
+        data: {
+          orderId,
+          buyerId: userId,
+          sellerId: eligibility.sellerId,
+          productId,
+          ratingProduct: ratingProductValue,
+          ratingSeller: ratingSellerValue,
+          comment,
+          status: reviewStatus,
+          isModerated: reviewIsModerated,
+          moderationReason: buildModerationReportReason(moderation),
+        },
+      }),
+      prisma.reviewEligibility.update({
+        where: { orderId },
+        data: { enabled: false },
+      }),
+    ]);
   } catch (error) {
+    console.error("[createBuyerReview] prisma.review.create falló:", error);
     return {
       error:
         error instanceof Error && error.message.includes("Unique constraint")
@@ -135,10 +156,22 @@ export async function createBuyerReview(
     };
   }
 
-  await refreshRatingsCache(productId, eligibility.sellerId);
+  if (moderation.outcome === "APPROVED") {
+    await refreshRatingsCache(productId, eligibility.sellerId);
+  }
   revalidatePath("/feedback/buyer");
 
-  return {
-    message: "La reseña fue creada correctamente.",
-  };
+  if (moderation.outcome === "REJECTED") {
+    return {
+      message:
+        "Tu reseña fue registrada pero no pudo publicarse porque contiene contenido inapropiado.",
+    };
+  }
+  if (moderation.outcome === "MANUAL_REVIEW") {
+    return {
+      message:
+        "Tu reseña está siendo revisada por nuestro equipo antes de publicarse.",
+    };
+  }
+  return { message: "La reseña fue creada correctamente." };
 }
