@@ -21,9 +21,10 @@ model Review {
   ratingProduct  Int
   ratingSeller   Int
   comment        String
-  status         ReviewStatus @default(PUBLISHED)
-  isModerated    Boolean      @default(false)
-  createdAt      DateTime     @default(now())
+  status             ReviewStatus @default(PUBLISHED)
+  isModerated        Boolean      @default(false)
+  moderationReason   String?
+  createdAt          DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   reports        ReviewReport[]

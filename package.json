@@ -8,7 +8,8 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
-    "seed:mock": "prisma db execute --file prisma/mock-feedback.sql"
+    "seed:mock": "prisma db execute --file prisma/mock-feedback.sql",
+    "db:reset": "prisma db execute --file prisma/reset.sql && prisma db execute --file prisma/mock-feedback.sql"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",

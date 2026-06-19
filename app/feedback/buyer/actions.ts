@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { refreshRatingsCache } from "@/lib/ratings-cache";
-import { moderateComment } from "@/lib/moderation";
+import { moderateComment, buildModerationReportReason } from "@/lib/moderation";
 
 export type BuyerReviewActionState = {
   message?: string;
@@ -137,6 +137,7 @@ export async function createBuyerReview(
         comment,
         status: reviewStatus,
         isModerated: reviewIsModerated,
+        moderationReason: buildModerationReportReason(moderation),
       },
     });
   } catch (error) {
