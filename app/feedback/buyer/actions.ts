@@ -115,7 +115,7 @@ export async function createBuyerReview(
 
   const moderation = await moderateComment(comment, { productId, orderId });
 
-  const reviewStatus =
+  const reviewStatus: "PUBLISHED" | "HIDDEN" | "PENDING" =
     moderation.outcome === "APPROVED"
       ? "PUBLISHED"
       : moderation.outcome === "REJECTED"

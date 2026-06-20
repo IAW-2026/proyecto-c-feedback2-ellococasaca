@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
   const trimmedComment = comment.trim();
   const moderation = await moderateComment(trimmedComment, { productId, orderId });
 
-  const reviewStatus =
+  const reviewStatus: "PUBLISHED" | "HIDDEN" | "PENDING" =
     moderation.outcome === "APPROVED"
       ? "PUBLISHED"
       : moderation.outcome === "REJECTED"
