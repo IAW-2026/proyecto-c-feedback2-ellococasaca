@@ -2,7 +2,7 @@
 import { consultAI } from "./ai-moderator";
 
 export type ModerationOutcome = "APPROVED" | "REJECTED" | "MANUAL_REVIEW";
-export type ModerationMethod = "local" | "openai";
+export type ModerationMethod = "local" | "claude";
 
 export interface ModerationResult {
   outcome: ModerationOutcome;
@@ -12,7 +12,7 @@ export interface ModerationResult {
 }
 
 const THRESHOLD_REJECT = 50; // score >= 50 -> auto-reject locally
-const THRESHOLD_AI = 15; // score 15-49 -> consult OpenAI; score < 15 -> auto-approve locally
+const THRESHOLD_AI = 15; // score 15-49 -> consult Claude; score < 15 -> auto-approve locally
 
 export async function moderateComment(
   comment: string,
@@ -29,7 +29,7 @@ export async function moderateComment(
     return { outcome: "APPROVED", method: "local", score, matchedLabels };
   }
 
-  // Dudoso (15 <= score < 50): consult OpenAI for final decision.
+  // Dudoso (15 <= score < 50): consult Claude for final decision.
   const aiVerdict = await consultAI(comment, {
     productId: context.productId,
     orderId: context.orderId,
@@ -39,7 +39,7 @@ export async function moderateComment(
 
   return {
     outcome: aiVerdict,
-    method: "openai",
+    method: "claude",
     score,
     matchedLabels,
   };
