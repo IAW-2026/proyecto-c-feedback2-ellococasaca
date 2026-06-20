@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
         : "PENDING";
 
   const reviewIsModerated =
-    moderation.method === "openai" || moderation.outcome !== "APPROVED";
+    moderation.method === "claude" || moderation.outcome !== "APPROVED";
 
   try {
     const review = await prisma.$transaction(async (tx) => {
