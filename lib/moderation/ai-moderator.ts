@@ -1,4 +1,6 @@
-﻿export type AiVerdict = "APPROVED" | "REJECTED" | "MANUAL_REVIEW";
+import Anthropic from "@anthropic-ai/sdk";
+
+export type AiVerdict = "APPROVED" | "REJECTED" | "MANUAL_REVIEW";
 
 export interface AiModerationContext {
   productId: string;
@@ -7,39 +9,19 @@ export interface AiModerationContext {
   matchedLabels: string[];
 }
 
-interface OpenAIModerationResult {
-  flagged?: boolean;
-  categories?: Record<string, boolean>;
-  category_scores?: Record<string, number>;
-}
+const SYSTEM_PROMPT = `Sos un moderador de contenido para una plataforma de reseñas de productos.
+Tu tarea es clasificar el comentario del usuario y responder ÚNICAMENTE con una de estas tres palabras exactas:
+- APPROVED: el comentario es apropiado y puede publicarse
+- REJECTED: el comentario contiene contenido claramente inapropiado (odio, acoso, amenazas, contenido sexual, spam agresivo)
+- MANUAL_REVIEW: el comentario es ambiguo o moderadamente cuestionable y requiere revisión humana
 
-interface OpenAIModerationResponse {
-  results?: OpenAIModerationResult[];
-  error?: { message?: string };
-}
+Responde solo con la palabra, sin explicación.`;
 
-const OPENAI_MODERATION_MODEL = "omni-moderation-latest";
-
-function getFlaggedCategories(result: OpenAIModerationResult): string[] {
-  return Object.entries(result.categories ?? {})
-    .filter(([, flagged]) => flagged)
-    .map(([category]) => category);
-}
-
-function shouldReject(result: OpenAIModerationResult): boolean {
-  const flaggedCategories = getFlaggedCategories(result);
-  const scores = result.category_scores ?? {};
-  const hasSevereCategory = flaggedCategories.some((category) =>
-    [
-      "hate/threatening",
-      "harassment/threatening",
-      "self-harm/instructions",
-      "sexual/minors",
-      "violence/graphic",
-    ].includes(category),
-  );
-
-  return hasSevereCategory || Object.values(scores).some((score) => score >= 0.85);
+function parseVerdict(text: string): AiVerdict {
+  const normalized = text.trim().toUpperCase();
+  if (normalized === "APPROVED") return "APPROVED";
+  if (normalized === "REJECTED") return "REJECTED";
+  return "MANUAL_REVIEW";
 }
 
 export async function consultAI(
@@ -48,40 +30,27 @@ export async function consultAI(
 ): Promise<AiVerdict> {
   void context;
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    console.error("[moderation] OPENAI_API_KEY no configurada; derivando a MANUAL_REVIEW");
+  if (!process.env.CLAUDE_API_KEY) {
+    console.error("[moderation] CLAUDE_API_KEY no configurada; derivando a MANUAL_REVIEW");
     return "MANUAL_REVIEW";
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/moderations", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: OPENAI_MODERATION_MODEL,
-        input: comment,
-      }),
+    const client = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
+
+    const message = await client.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 10,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content: comment }],
     });
 
-    const data = (await response.json()) as OpenAIModerationResponse;
+    const block = message.content[0];
+    if (!block || block.type !== "text") return "MANUAL_REVIEW";
 
-    if (!response.ok) {
-      throw new Error(data.error?.message ?? `OpenAI moderation failed with ${response.status}`);
-    }
-
-    const result = data.results?.[0];
-    if (!result) return "MANUAL_REVIEW";
-
-    if (!result.flagged) return "APPROVED";
-
-    return shouldReject(result) ? "REJECTED" : "MANUAL_REVIEW";
+    return parseVerdict(block.text);
   } catch (err) {
-    console.error("[moderation] Error al consultar OpenAI:", err);
+    console.error("[moderation] Error al consultar Claude:", err);
+    return "MANUAL_REVIEW";
   }
-
-  return "MANUAL_REVIEW";
 }

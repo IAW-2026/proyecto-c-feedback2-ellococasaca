@@ -62,7 +62,7 @@ VALUES
    3,4,
    'La camiseta era buena pero el talle no coincidía con la descripción.',
    'PUBLISHED',TRUE,
-   'Moderacion automatica (openai): APPROVED. Score local: 22. Indicadores: spam.',
+   'Moderacion automatica (claude): APPROVED. Score local: 22. Indicadores: spam.',
    NOW() - INTERVAL '5 days',NOW() - INTERVAL '3 days'),
 
   -- HIDDEN, rechazada localmente por score alto

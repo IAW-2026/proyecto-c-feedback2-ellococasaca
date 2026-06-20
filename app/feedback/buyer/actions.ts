@@ -123,23 +123,26 @@ export async function createBuyerReview(
         : "PENDING";
 
   const reviewIsModerated =
-    moderation.method === "openai" || moderation.outcome !== "APPROVED";
+    moderation.method === "claude" || moderation.outcome !== "APPROVED";
+
+  const reviewData = {
+    buyerId: userId,
+    sellerId: eligibility.sellerId,
+    productId,
+    ratingProduct: ratingProductValue,
+    ratingSeller: ratingSellerValue,
+    comment,
+    status: reviewStatus,
+    isModerated: reviewIsModerated,
+    moderationReason: buildModerationReportReason(moderation),
+  };
 
   try {
     await prisma.$transaction([
-      prisma.review.create({
-        data: {
-          orderId,
-          buyerId: userId,
-          sellerId: eligibility.sellerId,
-          productId,
-          ratingProduct: ratingProductValue,
-          ratingSeller: ratingSellerValue,
-          comment,
-          status: reviewStatus,
-          isModerated: reviewIsModerated,
-          moderationReason: buildModerationReportReason(moderation),
-        },
+      prisma.review.upsert({
+        where: { orderId },
+        create: { orderId, ...reviewData },
+        update: reviewData,
       }),
       prisma.reviewEligibility.update({
         where: { orderId },
@@ -147,12 +150,9 @@ export async function createBuyerReview(
       }),
     ]);
   } catch (error) {
-    console.error("[createBuyerReview] prisma.review.create falló:", error);
+    console.error("[createBuyerReview] prisma.review.upsert falló:", error);
     return {
-      error:
-        error instanceof Error && error.message.includes("Unique constraint")
-          ? "Ya existe una reseña para esta orden."
-          : "No se pudo guardar la reseña.",
+      error: "No se pudo guardar la reseña.",
     };
   }
 
