@@ -5,6 +5,7 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import { APP_ROLES } from "@/lib/clerk-roles";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -22,7 +23,7 @@ export default function Home() {
 
           <div className="flex items-center gap-3">
             <Show when="signed-out">
-              <SignInButton>
+              <SignInButton forceRedirectUrl="/feedback">
                 <button className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:bg-slate-50">
                   Ingresar
                 </button>
@@ -34,6 +35,12 @@ export default function Home() {
               </SignUpButton>
             </Show>
             <Show when="signed-in">
+              <Link
+                href="/feedback"
+                className="rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-amber-300"
+              >
+                Ir a la app
+              </Link>
               <UserButton />
             </Show>
           </div>
@@ -59,7 +66,7 @@ export default function Home() {
 
             <div className="flex flex-wrap gap-4">
               <Show when="signed-out">
-                <SignInButton>
+                <SignInButton forceRedirectUrl="/feedback">
                   <button className="rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
                     Iniciar sesion
                   </button>
@@ -71,9 +78,12 @@ export default function Home() {
                 </SignUpButton>
               </Show>
               <Show when="signed-in">
-                <div className="rounded-full border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-900">
-                  Sesion activa
-                </div>
+                <Link
+                  href="/feedback"
+                  className="rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Ir a Feedback App →
+                </Link>
               </Show>
             </div>
           </div>

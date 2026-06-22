@@ -3,6 +3,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { prisma } from "@/lib/prisma";
 import { refreshRatingsCache } from "@/lib/ratings-cache";
+import { buildModerationReportReason, moderateComment } from "@/lib/moderation";
 
 export async function POST(request: NextRequest) {
   const user = await currentUser();
@@ -65,25 +66,72 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (eligibility.sellerId !== sellerId) {
+    return Response.json(
+      { error: "Seller does not belong to this order." },
+      { status: 403 }
+    );
+  }
+
+  const trimmedComment = comment.trim();
+  const moderation = await moderateComment(trimmedComment, { productId, orderId });
+
+  const reviewStatus: "PUBLISHED" | "HIDDEN" | "PENDING" =
+    moderation.outcome === "APPROVED"
+      ? "PUBLISHED"
+      : moderation.outcome === "REJECTED"
+        ? "HIDDEN"
+        : "PENDING";
+
+  const reviewIsModerated =
+    moderation.method === "claude" || moderation.outcome !== "APPROVED";
+
   try {
-    const review = await prisma.review.create({
-      data: {
-        orderId,
-        buyerId: user.id,
-        sellerId,
-        productId,
-        ratingProduct: productRating as number,
-        ratingSeller: sellerRating as number,
-        comment: comment.trim(),
-        status: "PUBLISHED",
-        isModerated: false,
-      },
+    const review = await prisma.$transaction(async (tx) => {
+      const createdReview = await tx.review.create({
+        data: {
+          orderId,
+          buyerId: user.id,
+          sellerId: eligibility.sellerId,
+          productId,
+          ratingProduct: productRating as number,
+          ratingSeller: sellerRating as number,
+          comment: trimmedComment,
+          status: reviewStatus,
+          isModerated: reviewIsModerated,
+        },
+      });
+
+      if (moderation.outcome !== "APPROVED") {
+        await tx.reviewReport.create({
+          data: {
+            reviewId: createdReview.id,
+            reporterId: "system:auto-moderation",
+            reason: buildModerationReportReason(moderation),
+            status: "OPEN",
+          },
+        });
+      }
+
+      return createdReview;
     });
 
-    await refreshRatingsCache(productId, sellerId);
+    if (moderation.outcome === "APPROVED") {
+      await refreshRatingsCache(productId, eligibility.sellerId);
+    }
 
     return Response.json(
-      { reviewId: review.id, status: review.status, createdAt: review.createdAt },
+      {
+        reviewId: review.id,
+        status: review.status,
+        createdAt: review.createdAt,
+        moderation: {
+          outcome: moderation.outcome,
+          method: moderation.method,
+          score: moderation.score,
+          matchedLabels: moderation.matchedLabels,
+        },
+      },
       { status: 201 }
     );
   } catch (error) {

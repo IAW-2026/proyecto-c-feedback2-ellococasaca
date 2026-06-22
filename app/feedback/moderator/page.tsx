@@ -1,6 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { normalizeRoles } from "@/lib/clerk-roles";
-import { FEEDBACK_WINDOW_CONTENT, getRolePermissionSummary } from "@/lib/feedback-permissions";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { moderateReviewAction, resolveReportAction } from "@/feedback-management";
@@ -19,53 +18,45 @@ export default async function ModeratorFeedbackPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const permissions = getRolePermissionSummary(
-    roles.includes("moderator") ? "moderator" : "admin",
-  );
+  const openCount = reports.length;
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-300">
-          {FEEDBACK_WINDOW_CONTENT.moderator.title}
-        </p>
-        <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-          Moderación y resolución de reportes
-        </h2>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-          El moderador puede revisar reportes, ocultar reseñas y marcar acciones de moderación. No
-          elimina permanentemente reseñas.
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card label="Crear" value="No necesario" tone="slate" />
-        <Card label="Mirar" value={permissions.canView ? "Permitido" : "No permitido"} tone="green" />
-        <Card label="Eliminar" value={permissions.canDelete ? "Permitido" : "No permitido"} tone="slate" />
-      </div>
-
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">
-            Reportes abiertos
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-400">
+            Moderador
           </p>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
-            {reports.length} {reports.length === 1 ? "reporte" : "reportes"}
-          </span>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+            Cola de reportes
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Revisá cada reseña reportada y decidí si ocultarla, publicarla o cerrar el reporte.
+          </p>
         </div>
 
-        {reports.length > 0 ? (
-          <div className="space-y-4">
-            {reports.map((report) => (
-              <ReportCard key={report.id} report={report} />
-            ))}
-          </div>
-        ) : (
-          <p className="rounded-3xl border border-dashed border-white/15 bg-slate-950 px-4 py-8 text-center text-sm text-slate-400">
-            No hay reportes abiertos en este momento.
+        <div className="rounded-2xl border border-white/10 bg-slate-900 px-5 py-3 text-right">
+          <p className={`text-2xl font-semibold ${openCount > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+            {openCount}
           </p>
-        )}
-      </section>
+          <p className="text-xs text-slate-400">
+            {openCount === 1 ? "reporte abierto" : "reportes abiertos"}
+          </p>
+        </div>
+      </div>
+
+      {openCount > 0 ? (
+        <div className="space-y-4">
+          {reports.map((report) => (
+            <ReportCard key={report.id} report={report} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-dashed border-white/15 bg-slate-950 px-4 py-12 text-center">
+          <p className="text-sm font-medium text-emerald-400">Todo en orden</p>
+          <p className="mt-1 text-sm text-slate-500">No hay reportes abiertos en este momento.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -99,106 +90,107 @@ function ReportCard({
   const dismissReport = resolveReportAction.bind(null, report.id, "DISMISSED");
 
   return (
-    <article className="rounded-[1.75rem] border border-white/10 bg-slate-950 p-5 space-y-4">
+    <article className="rounded-[1.75rem] border border-white/10 bg-slate-900 p-5 space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-rose-400">
-            Reporte
+            Reporte abierto
           </p>
-          <p className="mt-1 text-sm font-semibold text-white">{report.reason}</p>
-          <p className="mt-1 text-xs text-slate-400">
-            Reportado por: {report.reporterId} ·{" "}
-            {report.createdAt.toLocaleDateString("es-AR")}
+          <p className="mt-1.5 text-sm font-semibold text-white">{report.reason}</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Reportado por {report.reporterId} · {report.createdAt.toLocaleDateString("es-AR")}
           </p>
         </div>
-        <span
-          className={`rounded-full border px-3 py-1 text-xs font-medium ${
-            review.status === "HIDDEN"
-              ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
-              : "border-emerald-400/30 bg-emerald-500/10 text-emerald-200"
-          }`}
-        >
-          Reseña: {review.status}
-        </span>
+        <ReviewStatusBadge status={review.status} />
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-slate-900 px-4 py-4">
+      <div className="rounded-2xl border border-white/10 bg-slate-800 px-4 py-4 space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
           Reseña reportada
         </p>
-        <p className="mt-2 text-xs text-slate-400">
-          Producto {review.productId} · Buyer {review.buyerId} · Order {review.orderId}
+        <p className="text-xs text-slate-500">
+          Producto <span className="font-mono text-slate-400">{review.productId}</span>
+          {" · "}Orden <span className="font-mono text-slate-400">{review.orderId}</span>
         </p>
-        <p className="mt-1 text-xs text-slate-400">
-          Rating producto: {review.ratingProduct}/5 · Rating vendedor: {review.ratingSeller}/5
-        </p>
-        <p className="mt-3 text-sm leading-6 text-slate-300">{review.comment}</p>
+        <div className="flex gap-4">
+          <RatingChip label="Producto" value={review.ratingProduct} />
+          <RatingChip label="Vendedor" value={review.ratingSeller} />
+        </div>
+        <p className="text-sm leading-6 text-slate-300">{review.comment}</p>
       </div>
 
-      <div className="flex flex-wrap gap-2 pt-1">
-        <p className="w-full text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">
-          Acción sobre la reseña
-        </p>
-        <form action={hideReview}>
-          <button
-            type="submit"
-            className="rounded-full border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-xs font-medium text-amber-200 hover:bg-amber-500/20"
-          >
-            Ocultar reseña
-          </button>
-        </form>
-        <form action={publishReview}>
-          <button
-            type="submit"
-            className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs font-medium text-emerald-200 hover:bg-emerald-500/20"
-          >
-            Publicar reseña
-          </button>
-        </form>
+      <div className="space-y-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+            Acción sobre la reseña
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <form action={hideReview}>
+              <button
+                type="submit"
+                className="rounded-full border border-amber-400/30 bg-amber-500/10 px-4 py-2 text-xs font-medium text-amber-300 transition hover:bg-amber-500/20"
+              >
+                Ocultar reseña
+              </button>
+            </form>
+            <form action={publishReview}>
+              <button
+                type="submit"
+                className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/20"
+              >
+                Publicar reseña
+              </button>
+            </form>
+          </div>
+        </div>
 
-        <p className="w-full text-xs font-semibold uppercase tracking-[0.25em] text-slate-400 pt-1">
-          Acción sobre el reporte
-        </p>
-        <form action={resolveReport}>
-          <button
-            type="submit"
-            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-200 hover:bg-white/10"
-          >
-            Marcar resuelto
-          </button>
-        </form>
-        <form action={dismissReport}>
-          <button
-            type="submit"
-            className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-slate-400 hover:bg-white/5"
-          >
-            Desestimar
-          </button>
-        </form>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+            Acción sobre el reporte
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <form action={resolveReport}>
+              <button
+                type="submit"
+                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/10"
+              >
+                Marcar resuelto
+              </button>
+            </form>
+            <form action={dismissReport}>
+              <button
+                type="submit"
+                className="rounded-full border border-white/10 px-4 py-2 text-xs font-medium text-slate-500 transition hover:bg-white/5 hover:text-slate-300"
+              >
+                Desestimar
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </article>
   );
 }
 
-function Card({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "green" | "slate";
-}) {
+function ReviewStatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    HIDDEN: "border-amber-400/30 bg-amber-500/10 text-amber-300",
+    PUBLISHED: "border-emerald-400/30 bg-emerald-500/10 text-emerald-300",
+  };
   return (
-    <div
-      className={`rounded-[1.75rem] border p-5 ${
-        tone === "green"
-          ? "border-emerald-400/30 bg-emerald-500/10"
-          : "border-white/10 bg-slate-950"
-      }`}
+    <span
+      className={`rounded-full border px-3 py-1 text-xs font-medium ${styles[status] ?? "border-white/10 text-slate-300"}`}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">{label}</p>
-      <p className="mt-3 text-lg font-semibold text-white">{value}</p>
+      Reseña: {status}
+    </span>
+  );
+}
+
+function RatingChip({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-slate-900 px-3 py-1.5">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-sm font-semibold text-white">{value}/5</p>
     </div>
   );
 }

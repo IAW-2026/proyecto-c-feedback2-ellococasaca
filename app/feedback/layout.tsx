@@ -1,10 +1,8 @@
 import { currentUser } from "@clerk/nextjs/server";
+import { UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  APP_ROLES,
-  normalizeRoles,
-} from "@/lib/clerk-roles";
+import { normalizeRoles } from "@/lib/clerk-roles";
 import {
   FEEDBACK_WINDOW_CONTENT,
   getAccessibleFeedbackWindows,
@@ -42,22 +40,16 @@ export default async function FeedbackLayout({
                 {primaryRole ? FEEDBACK_WINDOW_CONTENT[primaryRole].title : "Ventanas de feedback"}
               </h1>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
-                Tres vistas separadas según rol, con permisos distintos para crear, mirar y eliminar reseñas.
+                Plataforma de reseñas, calificaciones y moderación del marketplace.
               </p>
             </div>
 
-            <nav className="flex flex-wrap gap-2">
+            <nav className="flex flex-wrap items-center gap-2">
               <Link
                 className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10"
                 href="/"
               >
                 Inicio
-              </Link>
-              <Link
-                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10"
-                href="/feedback"
-              >
-                Hub de feedback
               </Link>
               {accessibleWindows.map((role) => (
                 <Link
@@ -68,15 +60,8 @@ export default async function FeedbackLayout({
                   {role}
                 </Link>
               ))}
+              <UserButton />
             </nav>
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2 text-xs text-slate-300">
-            {APP_ROLES.map((role) => (
-              <span key={role} className="rounded-full border border-white/10 px-3 py-1">
-                {role}
-              </span>
-            ))}
           </div>
         </header>
 

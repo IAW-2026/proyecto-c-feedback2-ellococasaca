@@ -1,3 +1,5 @@
+"use server";
+
 import { prisma } from "@/lib/prisma";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { normalizeRoles } from "@/lib/clerk-roles";
@@ -15,9 +17,14 @@ export async function deleteReviewAction(reviewId: string) {
     throw new Error("No tienes permisos para eliminar reseñas.");
   }
 
-  await prisma.review.update({
+  const deleted = await prisma.review.update({
     where: { id: reviewId },
     data: { status: "DELETED" },
+  });
+
+  await prisma.reviewEligibility.updateMany({
+    where: { orderId: deleted.orderId },
+    data: { enabled: true },
   });
 
   revalidatePath("/feedback/admin");

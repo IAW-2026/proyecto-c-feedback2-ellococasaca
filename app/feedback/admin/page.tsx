@@ -1,4 +1,3 @@
-import { FEEDBACK_WINDOW_CONTENT, getRolePermissionSummary } from "@/lib/feedback-permissions";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { normalizeRoles } from "@/lib/clerk-roles";
@@ -39,65 +38,71 @@ export default async function AdminFeedbackPage({
     take: 50,
   });
 
-  const permissions = getRolePermissionSummary("admin");
-
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-300">
-          {FEEDBACK_WINDOW_CONTENT.admin.title}
-        </p>
-        <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-          Búsqueda global y moderación total
-        </h2>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-          El admin puede buscar cualquier reseña de cualquier usuario y eliminarla si hace falta.
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card label="Crear" value="No necesario" tone="slate" />
-        <Card label="Mirar" value={permissions.canView ? "Permitido" : "No permitido"} tone="green" />
-        <Card label="Eliminar" value={permissions.canDelete ? "Permitido" : "No permitido"} tone="green" />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
-        <section className="rounded-[1.75rem] border border-white/10 bg-slate-950 p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-300">
-            Buscador global
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-400">
+            Administrador
           </p>
-          <form className="mt-4 grid gap-3 md:grid-cols-[1fr_180px]" method="get">
-            <input
-              name="q"
-              defaultValue={query}
-              className="rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
-              placeholder="Buscar por usuario, producto, orderId o texto del comentario"
-            />
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+            Panel de control
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Búsqueda transversal sobre todas las reseñas activas. La eliminación es irreversible.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-slate-900 px-5 py-3 text-right">
+          <p className="text-2xl font-semibold text-white">{reviews.length}</p>
+          <p className="text-xs text-slate-400">
+            {query ? `resultado${reviews.length !== 1 ? "s" : ""} para "${query}"` : "reseñas activas"}
+          </p>
+        </div>
+      </div>
+
+      <section className="rounded-[1.75rem] border border-white/10 bg-slate-900 p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-400">
+          Buscador global
+        </p>
+        <form className="mt-4 grid gap-3 md:grid-cols-[1fr_140px]" method="get">
+          <input
+            name="q"
+            defaultValue={query}
+            className="rounded-2xl border border-white/10 bg-slate-800 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-amber-400/40"
+            placeholder="Buscar por usuario, producto, orden o comentario..."
+          />
+          <button
+            type="submit"
+            className="rounded-2xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-amber-300"
+          >
+            Buscar
+          </button>
+        </form>
+        {query && (
+          <form method="get" className="mt-2">
             <button
               type="submit"
-              className="rounded-2xl bg-amber-400 px-4 py-3 text-sm font-semibold text-slate-950"
+              className="text-xs text-slate-500 underline underline-offset-2 hover:text-slate-300"
             >
-              Buscar
+              Limpiar búsqueda
             </button>
           </form>
+        )}
+      </section>
 
-          <div className="mt-5 space-y-3">
-            {reviews.length > 0 ? (
-              reviews.map((review) => (
-                <ReviewCard key={review.id} review={review} />
-              ))
-            ) : (
-              <p className="rounded-3xl border border-dashed border-white/15 bg-slate-900 px-4 py-6 text-sm text-slate-300">
-                No hay reseñas para mostrar con el filtro actual.
-              </p>
-            )}
+      <section className="space-y-3">
+        {reviews.length > 0 ? (
+          reviews.map((review) => <ReviewCard key={review.id} review={review} />)
+        ) : (
+          <div className="rounded-3xl border border-dashed border-white/15 bg-slate-950 px-4 py-10 text-center">
+            <p className="text-sm text-slate-400">
+              {query
+                ? `No se encontraron reseñas para "${query}".`
+                : "No hay reseñas activas en el sistema."}
+            </p>
           </div>
-        </section>
-
-        <aside className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 text-sm leading-6 text-slate-300">
-          Búsqueda transversal sobre todas las reseñas activas. Podés eliminar cualquier reseña desde acá; la acción es irreversible.
-        </aside>
-      </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -116,68 +121,80 @@ function ReviewCard({
     comment: string;
     status: string;
     isModerated: boolean;
+    moderationReason: string | null;
   };
 }) {
   const deleteWithId = deleteReviewAction.bind(null, review.id);
 
   return (
-    <article className="rounded-3xl border border-white/10 bg-slate-900 px-4 py-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-semibold text-white">Producto {review.productId}</p>
-          <p className="text-xs text-slate-400">
-            Buyer: {review.buyerId} · Seller: {review.sellerId}
+    <article className="rounded-[1.75rem] border border-white/10 bg-slate-900 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-white">
+            Producto <span className="font-mono text-amber-300">{review.productId}</span>
           </p>
-          <p className="text-xs text-slate-400">Order: {review.orderId}</p>
+          <p className="text-xs text-slate-400">
+            Orden <span className="font-mono">{review.orderId}</span>
+          </p>
+          <p className="text-xs text-slate-500">
+            Comprador: {review.buyerId} · Vendedor: {review.sellerId}
+          </p>
         </div>
+
         <div className="flex items-center gap-2">
-          <span
-            className={`rounded-full border px-3 py-1 text-xs font-medium ${
-              review.status === "HIDDEN"
-                ? "border-amber-400/30 bg-amber-500/10 text-amber-200"
-                : "border-white/10 text-slate-300"
-            }`}
-          >
-            {review.status}
-          </span>
+          <StatusBadge status={review.status} />
+          {review.isModerated && (
+            <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-300">
+              Moderada
+            </span>
+          )}
           <form action={deleteWithId}>
             <button
               type="submit"
-              className="rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-1 text-xs font-medium text-rose-200 hover:bg-rose-500/20"
+              className="rounded-full border border-rose-400/30 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-300 transition hover:bg-rose-500/20"
             >
               Eliminar
             </button>
           </form>
         </div>
       </div>
-      <p className="mt-3 text-xs text-slate-400">
-        Rating producto: {review.ratingProduct}/5 · Rating vendedor: {review.ratingSeller}/5
-        {review.isModerated && " · Moderada"}
-      </p>
-      <p className="mt-2 text-sm leading-6 text-slate-300">{review.comment}</p>
+
+      <div className="mt-4 flex gap-4">
+        <RatingChip label="Producto" value={review.ratingProduct} />
+        <RatingChip label="Vendedor" value={review.ratingSeller} />
+      </div>
+
+      <p className="mt-3 text-sm leading-6 text-slate-300">{review.comment}</p>
+
+      {review.moderationReason && (
+        <p className="mt-3 rounded-2xl border border-violet-400/20 bg-violet-500/5 px-4 py-2 font-mono text-xs text-violet-300">
+          {review.moderationReason}
+        </p>
+      )}
     </article>
   );
 }
 
-function Card({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "green" | "slate";
-}) {
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    HIDDEN: "border-amber-400/30 bg-amber-500/10 text-amber-300",
+    PUBLISHED: "border-emerald-400/30 bg-emerald-500/10 text-emerald-300",
+    DELETED: "border-rose-400/30 bg-rose-500/10 text-rose-300",
+  };
   return (
-    <div
-      className={`rounded-[1.75rem] border p-5 ${
-        tone === "green"
-          ? "border-emerald-400/30 bg-emerald-500/10"
-          : "border-white/10 bg-slate-950"
-      }`}
+    <span
+      className={`rounded-full border px-3 py-1 text-xs font-medium ${styles[status] ?? "border-white/10 text-slate-300"}`}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">{label}</p>
-      <p className="mt-3 text-lg font-semibold text-white">{value}</p>
+      {status}
+    </span>
+  );
+}
+
+function RatingChip({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-slate-800 px-3 py-2">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-white">{value}/5</p>
     </div>
   );
 }
