@@ -23,7 +23,7 @@ export default function Home() {
 
           <div className="flex items-center gap-3">
             <Show when="signed-out">
-              <SignInButton>
+              <SignInButton forceRedirectUrl="/feedback">
                 <button className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:bg-slate-50">
                   Ingresar
                 </button>
@@ -66,7 +66,7 @@ export default function Home() {
 
             <div className="flex flex-wrap gap-4">
               <Show when="signed-out">
-                <SignInButton>
+                <SignInButton forceRedirectUrl="/feedback">
                   <button className="rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
                     Iniciar sesion
                   </button>

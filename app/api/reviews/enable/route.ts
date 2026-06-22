@@ -2,6 +2,11 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
+  const secret = process.env.INTER_SERVICE_SECRET;
+  if (secret && request.headers.get("x-inter-service-secret") !== secret) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   let body: unknown;
   try {
     body = await request.json();
