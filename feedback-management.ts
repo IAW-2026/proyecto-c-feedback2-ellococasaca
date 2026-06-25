@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { canDeleteFeedback, canSearchAnyFeedback } from "@/lib/feedback-permissions";
+import { refreshRatingsCache } from "@/lib/ratings-cache";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -27,6 +28,8 @@ export async function deleteReviewAction(reviewId: string) {
     data: { enabled: true },
   });
 
+  await refreshRatingsCache(deleted.productId, deleted.sellerId);
+
   revalidatePath("/feedback/admin");
   revalidatePath("/feedback/seller");
 }
@@ -45,10 +48,12 @@ export async function moderateReviewAction(reviewId: string, newStatus: "HIDDEN"
     throw new Error("No tienes permisos de moderación.");
   }
 
-  await prisma.review.update({
+  const updated = await prisma.review.update({
     where: { id: reviewId },
     data: { status: newStatus },
   });
+
+  await refreshRatingsCache(updated.productId, updated.sellerId);
 
   revalidatePath("/feedback/moderator");
 }

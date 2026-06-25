@@ -6,40 +6,35 @@ export async function GET(
 ) {
   const { sellerId } = await params;
 
-  const [reviews, cache] = await Promise.all([
-    prisma.review.findMany({
-      where: { sellerId, status: { not: "DELETED" } },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        buyerId: true,
-        ratingSeller: true,
-        comment: true,
-        createdAt: true,
-      },
-    }),
-    prisma.ratingsCache.findUnique({
-      where: { targetId_targetType: { targetId: sellerId, targetType: "SELLER" } },
-    }),
-  ]);
+  const cache = await prisma.ratingsCache.findUnique({
+    where: { targetId_targetType: { targetId: sellerId, targetType: "SELLER" } },
+  });
 
-  const totalReviews = reviews.length;
+  if (cache) {
+    return Response.json({
+      sellerId,
+      averageRating: Math.round(cache.averageRating * 10) / 10,
+      totalReviews: cache.totalReviews,
+    });
+  }
+
+  // Fallback: compute seller rating as average of per-product averages
+  const productGroups = await prisma.review.groupBy({
+    by: ["productId"],
+    where: { sellerId, status: { not: "DELETED" } },
+    _avg: { ratingProduct: true },
+    _count: { id: true },
+  });
+
   const averageRating =
-    cache?.averageRating ??
-    (totalReviews > 0
-      ? reviews.reduce((sum, r) => sum + r.ratingSeller, 0) / totalReviews
-      : 0);
+    productGroups.length > 0
+      ? productGroups.reduce((sum, g) => sum + (g._avg.ratingProduct ?? 0), 0) / productGroups.length
+      : 0;
+  const totalReviews = productGroups.reduce((sum, g) => sum + g._count.id, 0);
 
   return Response.json({
     sellerId,
     averageRating: Math.round(averageRating * 10) / 10,
     totalReviews,
-    reviews: reviews.map((r) => ({
-      reviewId: r.id,
-      buyerId: r.buyerId,
-      rating: r.ratingSeller,
-      comment: r.comment,
-      createdAt: r.createdAt,
-    })),
   });
 }
