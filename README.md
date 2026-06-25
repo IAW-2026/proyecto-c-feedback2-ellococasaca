@@ -140,6 +140,7 @@ La página de administración externa (Super Admin) consume directamente los end
 | Acción | Endpoint | Rol requerido |
 |--------|----------|:-------------:|
 | Ver métricas globales | `GET /api/analytics` | admin |
+| Listar / buscar todas las reseñas | `GET /api/admin/reviews?limit=N&skip=N&q=texto` | admin |
 | Listar reseñas de un seller | `GET /api/reviews/seller/:sellerId?limit=N&skip=N` | público |
 | Listar reseñas de un producto | `GET /api/reviews/product/:productId?limit=N&skip=N` | público |
 | Ver rating de un seller | `GET /api/seller-ratings/:sellerId` | público |
@@ -147,7 +148,6 @@ La página de administración externa (Super Admin) consume directamente los end
 | Eliminar una reseña | `DELETE /api/reviews/:id` | admin |
 | Moderar una reseña (ocultar/publicar) | `PATCH /api/reviews/:id/moderate` | admin / moderator |
 | Resolver un reporte | — | *pendiente* |
-| Buscar reseñas (texto libre) | — | *pendiente* |
 | Listar todos los sellers con ratings | — | *pendiente* |
 
 Los endpoints marcados como *pendiente* aún no existen como API REST; la funcionalidad equivalente solo está disponible en las páginas SSR internas.
