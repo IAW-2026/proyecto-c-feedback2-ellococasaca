@@ -31,6 +31,7 @@ Permite a compradores calificar productos y vendedores, gestionar reportes y mod
 | Resolver / desestimar reporte | — | — | ✅ | ✅ |
 | Búsqueda global de reseñas | — | — | — | ✅ |
 | Eliminar reseña | — | — | — | ✅ |
+| Ver sellers y sus ratings | — | — | — | ✅ |
 
 ---
 
@@ -65,29 +66,39 @@ Para que un buyer pueda crear una reseña, se validan estas condiciones en orden
 
 ---
 
+## Rating del seller
+
+El rating del seller **no se almacena en cada reseña**. Se calcula como el **promedio de los ratings promedio de sus productos** y se persiste en `RatingsCache` (targetType `SELLER`). Cada vez que se aprueba una nueva reseña de producto, el cache del seller se recalcula automáticamente.
+
+---
+
 ## API REST
 
 ### Endpoints inter-servicio
 
-| Método | Ruta | Descripción | Llamado por |
-|--------|------|-------------|-------------|
-| `POST` | `/api/reviews/enable` | Habilita elegibilidad de reseña tras entrega | Shipping App |
-| `POST` | `/api/reviews` | Crea una reseña | Buyer App |
-| `GET` | `/api/reviews/product/:productId` | Reseñas paginadas de un producto | Buyer App |
-| `GET` | `/api/reviews/seller/:sellerId` | Reseñas paginadas de un vendedor | Buyer App |
-| `GET` | `/api/seller-ratings/:sellerId` | Rating promedio del vendedor | Seller App |
-| `GET` | `/api/product-ratings/:productId` | Rating promedio del producto | Seller App |
+| Método | Ruta | Descripción | Auth | Llamado por |
+|--------|------|-------------|------|-------------|
+| `POST` | `/api/reviews/enable` | Habilita elegibilidad de reseña tras entrega | `x-inter-service-secret` (opcional) | Shipping App |
+| `POST` | `/api/reviews` | Crea una reseña con moderación automática | Clerk (buyer) | Buyer App |
+| `GET` | `/api/reviews/product/:productId` | Reseñas paginadas de un producto | Pública | Buyer App |
+| `GET` | `/api/reviews/seller/:sellerId` | Reseñas paginadas de un vendedor | Pública | Buyer App |
+| `GET` | `/api/seller-ratings/:sellerId` | Rating promedio del seller (promedio de productos) | Pública | Seller App |
+| `GET` | `/api/product-ratings/:productId` | Rating promedio del producto | Pública | Seller App |
 
-> Los endpoints de reseñas por producto y vendedor aceptan `?limit=N&skip=N` para paginación (máximo 100 por página, default 10).
+> **`POST /api/reviews`** — body: `{ orderId, productId, sellerId, productRating (1-5), comment }`. El campo `sellerRating` fue eliminado; el rating del seller se deriva de los productos.
+
+> **Paginación** — `/api/reviews/product/:id` y `/api/reviews/seller/:id` aceptan `?limit=N&skip=N` (máx. 100, default 10). La respuesta incluye `totalReviews`, `skip` y `take`.
+
+> **Rating del seller en `/api/reviews/seller/:id`** — `averageRating` proviene del cache (promedio de productos). El fallback sin cache también calcula promedio de promedios por producto usando `groupBy`.
 
 ### Endpoints del buyer
 
 | Método | Ruta | Descripción | Auth |
 |--------|------|-------------|------|
-| `GET` | `/api/buyer/purchases` | Compras paginadas del buyer con estado de reseña por producto | Buyer |
-| `GET` | `/api/buyer/purchases/eligible/:productId` | Verifica si el buyer puede reseñar un producto concreto | Buyer |
+| `GET` | `/api/buyer/purchases` | Compras paginadas del buyer con estado de reseña por producto | Clerk (buyer) |
+| `GET` | `/api/buyer/purchases/eligible/:productId` | Verifica si el buyer puede reseñar un producto concreto | Clerk (buyer) |
 
-> `/api/buyer/purchases` acepta `?limit=N&skip=N`. Cada item del array `orders` incluye `canReview` y `reason` (`eligible` / `already_reviewed` / `not_enabled`).
+> `/api/buyer/purchases` acepta `?limit=N&skip=N`. Cada item incluye `canReview` y `reason` (`eligible` / `already_reviewed` / `not_enabled`). La respuesta no incluye `ratingSeller` (campo eliminado).
 
 > `/api/buyer/purchases/eligible/:productId` devuelve `canReview` (boolean) y `reason` a nivel raíz, más el detalle por orden en `orders[]`. Si el buyer nunca compró el producto, `reason: "not_purchased"`.
 
@@ -95,19 +106,20 @@ Para que un buyer pueda crear una reseña, se validan estas condiciones en orden
 
 | Método | Ruta | Descripción | Auth |
 |--------|------|-------------|------|
-| `POST` | `/api/reviews/:id/report` | Reporta una reseña | Autenticado |
-| `PATCH` | `/api/reviews/:id/moderate` | Cambia estado de reseña | Moderator / Admin |
-| `DELETE` | `/api/reviews/:id` | Elimina reseña (soft delete) | Admin |
+| `POST` | `/api/reviews/:id/report` | Reporta una reseña | Clerk (autenticado) |
+| `PATCH` | `/api/reviews/:id/moderate` | Cambia estado de reseña | Clerk (moderator / admin) |
+| `DELETE` | `/api/reviews/:id` | Elimina reseña (soft delete) | Clerk (admin) |
 
 ---
 
 ## Modelo de datos
 
 ```
-Review         — reseña con ratings (producto 1-5, vendedor 1-5) y estado
+Review            — reseña con ratingProduct (1-5) y estado; sin ratingSeller (eliminado)
 ReviewEligibility — habilita que un comprador pueda reseñar una orden entregada
-ReviewReport   — reporte de una reseña por contenido inapropiado
-RatingsCache   — promedio pre-calculado de ratings por producto o vendedor
+ReviewReport      — reporte de una reseña por contenido inapropiado
+RatingsCache      — promedio pre-calculado por producto (PRODUCT) o seller (SELLER)
+                    El cache SELLER = promedio de los promedios de sus productos
 ```
 
 ---

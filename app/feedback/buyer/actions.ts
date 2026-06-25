@@ -14,7 +14,6 @@ export type BuyerReviewActionState = {
     orderId?: string;
     productId?: string;
     ratingProduct?: string;
-    ratingSeller?: string;
     comment?: string;
   };
 };
@@ -58,7 +57,6 @@ export async function createBuyerReview(
   const productId = toStringValue(formData.get("productId"));
   const comment = toStringValue(formData.get("comment"));
   const ratingProduct = toPositiveInt(toStringValue(formData.get("ratingProduct")));
-  const ratingSeller = toPositiveInt(toStringValue(formData.get("ratingSeller")));
 
   const fieldErrors: BuyerReviewActionState["fieldErrors"] = {};
 
@@ -74,10 +72,6 @@ export async function createBuyerReview(
     fieldErrors.ratingProduct = "La calificación del producto debe estar entre 1 y 5.";
   }
 
-  if (ratingSeller === null) {
-    fieldErrors.ratingSeller = "La calificación del vendedor debe estar entre 1 y 5.";
-  }
-
   if (!comment) {
     fieldErrors.comment = "El comentario es obligatorio.";
   }
@@ -87,7 +81,6 @@ export async function createBuyerReview(
   }
 
   const ratingProductValue = ratingProduct as number;
-  const ratingSellerValue = ratingSeller as number;
 
   const eligibility = await prisma.reviewEligibility.findUnique({
     where: {
@@ -130,7 +123,6 @@ export async function createBuyerReview(
     sellerId: eligibility.sellerId,
     productId,
     ratingProduct: ratingProductValue,
-    ratingSeller: ratingSellerValue,
     comment,
     status: reviewStatus,
     isModerated: reviewIsModerated,
@@ -156,9 +148,7 @@ export async function createBuyerReview(
     };
   }
 
-  if (moderation.outcome === "APPROVED") {
-    await refreshRatingsCache(productId, eligibility.sellerId);
-  }
+  await refreshRatingsCache(productId, eligibility.sellerId);
   revalidatePath("/feedback/buyer");
 
   if (moderation.outcome === "REJECTED") {

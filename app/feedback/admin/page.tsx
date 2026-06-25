@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { normalizeRoles } from "@/lib/clerk-roles";
@@ -52,11 +53,19 @@ export default async function AdminFeedbackPage({
             Búsqueda transversal sobre todas las reseñas activas. La eliminación es irreversible.
           </p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-slate-900 px-5 py-3 text-right">
-          <p className="text-2xl font-semibold text-white">{reviews.length}</p>
-          <p className="text-xs text-slate-400">
-            {query ? `resultado${reviews.length !== 1 ? "s" : ""} para "${query}"` : "reseñas activas"}
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl border border-white/10 bg-slate-900 px-5 py-3 text-right">
+            <p className="text-2xl font-semibold text-white">{reviews.length}</p>
+            <p className="text-xs text-slate-400">
+              {query ? `resultado${reviews.length !== 1 ? "s" : ""} para "${query}"` : "reseñas activas"}
+            </p>
+          </div>
+          <Link
+            href="/feedback/admin/sellers"
+            className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/20"
+          >
+            Ver sellers →
+          </Link>
         </div>
       </div>
 
@@ -117,7 +126,6 @@ function ReviewCard({
     orderId: string;
     productId: string;
     ratingProduct: number;
-    ratingSeller: number;
     comment: string;
     status: string;
     isModerated: boolean;
@@ -161,7 +169,6 @@ function ReviewCard({
 
       <div className="mt-4 flex gap-4">
         <RatingChip label="Producto" value={review.ratingProduct} />
-        <RatingChip label="Vendedor" value={review.ratingSeller} />
       </div>
 
       <p className="mt-3 text-sm leading-6 text-slate-300">{review.comment}</p>

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { prisma } from "@/lib/prisma";
+import { refreshRatingsCache } from "@/lib/ratings-cache";
 
 const ALLOWED_STATUSES = ["PUBLISHED", "HIDDEN"] as const;
 type ModerationStatus = (typeof ALLOWED_STATUSES)[number];
@@ -46,6 +47,8 @@ export async function PATCH(
     where: { id },
     data: { status: status as ModerationStatus, isModerated: true },
   });
+
+  await refreshRatingsCache(updated.productId, updated.sellerId);
 
   return Response.json({
     reviewId: id,

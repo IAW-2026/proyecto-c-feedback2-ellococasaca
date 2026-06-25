@@ -23,13 +23,12 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { orderId, productId, sellerId, productRating, sellerRating, comment } =
+  const { orderId, productId, sellerId, productRating, comment } =
     body as {
       orderId?: string;
       productId?: string;
       sellerId?: string;
       productRating?: number;
-      sellerRating?: number;
       comment?: string;
     };
 
@@ -40,13 +39,10 @@ export async function POST(request: NextRequest) {
   if (
     !Number.isInteger(productRating) ||
     (productRating as number) < 1 ||
-    (productRating as number) > 5 ||
-    !Number.isInteger(sellerRating) ||
-    (sellerRating as number) < 1 ||
-    (sellerRating as number) > 5
+    (productRating as number) > 5
   ) {
     return Response.json(
-      { error: "Ratings must be integers between 1 and 5." },
+      { error: "productRating must be an integer between 1 and 5." },
       { status: 400 }
     );
   }
@@ -95,7 +91,6 @@ export async function POST(request: NextRequest) {
           sellerId: eligibility.sellerId,
           productId,
           ratingProduct: productRating as number,
-          ratingSeller: sellerRating as number,
           comment: trimmedComment,
           status: reviewStatus,
           isModerated: reviewIsModerated,
@@ -116,9 +111,7 @@ export async function POST(request: NextRequest) {
       return createdReview;
     });
 
-    if (moderation.outcome === "APPROVED") {
-      await refreshRatingsCache(productId, eligibility.sellerId);
-    }
+    await refreshRatingsCache(productId, eligibility.sellerId);
 
     return Response.json(
       {

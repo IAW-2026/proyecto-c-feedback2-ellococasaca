@@ -19,7 +19,6 @@ model Review {
   sellerId       String
   productId      String
   ratingProduct  Int
-  ratingSeller   Int
   comment        String
   status             ReviewStatus @default(PUBLISHED)
   isModerated        Boolean      @default(false)
