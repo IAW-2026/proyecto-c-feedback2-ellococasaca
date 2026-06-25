@@ -79,9 +79,8 @@ export default async function BuyerFeedbackPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="mt-4">
                   <Info label="Rating producto" value={`${review.ratingProduct}/5`} />
-                  <Info label="Rating vendedor" value={`${review.ratingSeller}/5`} />
                 </div>
 
                 <p className="mt-4 text-sm leading-6 text-slate-300">

@@ -22,7 +22,8 @@ export async function GET(
       select: {
         id: true,
         buyerId: true,
-        ratingSeller: true,
+        productId: true,
+        ratingProduct: true,
         comment: true,
         createdAt: true,
       },
@@ -33,9 +34,20 @@ export async function GET(
     }),
   ]);
 
-  const averageRating =
-    cache?.averageRating ??
-    (total > 0 ? reviews.reduce((sum, r) => sum + r.ratingSeller, 0) / reviews.length : 0);
+  // Seller average comes from the cache (average of product averages)
+  // Fallback: group by product and average those averages
+  let averageRating = cache?.averageRating ?? null;
+  if (averageRating === null) {
+    const productGroups = await prisma.review.groupBy({
+      by: ["productId"],
+      where,
+      _avg: { ratingProduct: true },
+    });
+    averageRating =
+      productGroups.length > 0
+        ? productGroups.reduce((sum, g) => sum + (g._avg.ratingProduct ?? 0), 0) / productGroups.length
+        : 0;
+  }
 
   return Response.json({
     sellerId,
@@ -46,7 +58,8 @@ export async function GET(
     reviews: reviews.map((r) => ({
       reviewId: r.id,
       buyerId: r.buyerId,
-      rating: r.ratingSeller,
+      productId: r.productId,
+      ratingProduct: r.ratingProduct,
       comment: r.comment,
       createdAt: r.createdAt,
     })),

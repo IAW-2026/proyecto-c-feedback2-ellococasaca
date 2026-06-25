@@ -36,12 +36,12 @@ ON CONFLICT ("orderId") DO UPDATE SET
 -- ─── Reviews ──────────────────────────────────────────────────────────────────
 -- Variety of statuses so every role has data to work with immediately.
 
-INSERT INTO "Review" ("id","orderId","buyerId","sellerId","productId","ratingProduct","ratingSeller","comment","status","isModerated","moderationReason","createdAt","updatedAt")
+INSERT INTO "Review" ("id","orderId","buyerId","sellerId","productId","ratingProduct","comment","status","isModerated","moderationReason","createdAt","updatedAt")
 VALUES
   -- PUBLISHED, aprobada localmente sin indicadores
   ('rev_001','order_004',
    'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_001',
-   5,5,
+   5,
    'Excelente camiseta, llegó perfecta y en tiempo. El vendedor fue muy atento.',
    'PUBLISHED',FALSE,
    'Moderacion automatica (local): APPROVED. Score local: 0. Indicadores: sin indicadores locales.',
@@ -50,16 +50,16 @@ VALUES
   -- PUBLISHED, aprobada localmente sin indicadores
   ('rev_002','order_005',
    'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_002',
-   4,4,
+   4,
    'Muy buena calidad, fiel a las fotos. Demoró un poco más de lo esperado pero llegó bien.',
    'PUBLISHED',FALSE,
    'Moderacion automatica (local): APPROVED. Score local: 0. Indicadores: sin indicadores locales.',
    NOW() - INTERVAL '7 days',NOW() - INTERVAL '7 days'),
 
-  -- PUBLISHED, dudosa localmente → OpenAI la aprobó
+  -- PUBLISHED, dudosa localmente → Claude la aprobó
   ('rev_003','order_006',
    'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_003',
-   3,4,
+   3,
    'La camiseta era buena pero el talle no coincidía con la descripción.',
    'PUBLISHED',TRUE,
    'Moderacion automatica (claude): APPROVED. Score local: 22. Indicadores: spam.',
@@ -68,7 +68,7 @@ VALUES
   -- HIDDEN, rechazada localmente por score alto
   ('rev_004','order_007',
    'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_001',
-   1,1,
+   1,
    'Contenido inapropiado ocultado por moderación.',
    'HIDDEN',TRUE,
    'Moderacion automatica (local): REJECTED. Score local: 78. Indicadores: ofensivo, spam.',
@@ -77,7 +77,7 @@ VALUES
   -- PUBLISHED, aprobada localmente sin indicadores
   ('rev_005','order_008',
    'user_3EZ24f4ckNuGNicwvUv60v16df5','user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','product_002',
-   2,3,
+   2,
    'El bordado estaba mal hecho y el color no era el mismo que en las fotos.',
    'PUBLISHED',FALSE,
    'Moderacion automatica (local): APPROVED. Score local: 0. Indicadores: sin indicadores locales.',
@@ -85,7 +85,6 @@ VALUES
 
 ON CONFLICT ("orderId") DO UPDATE SET
   "ratingProduct"    = EXCLUDED."ratingProduct",
-  "ratingSeller"     = EXCLUDED."ratingSeller",
   "comment"          = EXCLUDED."comment",
   "status"           = EXCLUDED."status",
   "isModerated"      = EXCLUDED."isModerated",
@@ -126,7 +125,7 @@ VALUES
   ('product_001','PRODUCT', 3.0, 2),
   ('product_002','PRODUCT', 3.0, 2),
   ('product_003','PRODUCT', 3.0, 1),
-  ('user_3EY1BlufGgMT4Sbl0VIjABwoIUe','SELLER', 3.4, 5)
+  ('user_3EZ21jRpTuRcgSfKa94ytFJM1Eq','SELLER', 3.0, 5)
 ON CONFLICT ("targetId","targetType") DO UPDATE SET
   "averageRating" = EXCLUDED."averageRating",
   "totalReviews"  = EXCLUDED."totalReviews";

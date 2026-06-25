@@ -76,7 +76,6 @@ function ReportCard({
       productId: string;
       orderId: string;
       ratingProduct: number;
-      ratingSeller: number;
       comment: string;
       status: string;
     };
@@ -114,7 +113,6 @@ function ReportCard({
         </p>
         <div className="flex gap-4">
           <RatingChip label="Producto" value={review.ratingProduct} />
-          <RatingChip label="Vendedor" value={review.ratingSeller} />
         </div>
         <p className="text-sm leading-6 text-slate-300">{review.comment}</p>
       </div>

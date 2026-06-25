@@ -37,10 +37,7 @@ export function BuyerReviewForm() {
       <Field label="Order ID" name="orderId" placeholder="order_123" error={state.fieldErrors?.orderId} />
       <Field label="Product ID" name="productId" placeholder="prod_123" error={state.fieldErrors?.productId} />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field label="Rating producto" name="ratingProduct" placeholder="5" type="number" error={state.fieldErrors?.ratingProduct} />
-        <Field label="Rating vendedor" name="ratingSeller" placeholder="5" type="number" error={state.fieldErrors?.ratingSeller} />
-      </div>
+      <Field label="Rating producto" name="ratingProduct" placeholder="5" type="number" error={state.fieldErrors?.ratingProduct} />
 
       <div>
         <label className="text-sm font-medium text-slate-200" htmlFor="comment">
