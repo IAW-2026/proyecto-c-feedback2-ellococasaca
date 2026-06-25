@@ -110,6 +110,27 @@ El rating del seller **no se almacena en cada reseña**. Se calcula como el **pr
 | `PATCH` | `/api/reviews/:id/moderate` | Cambia estado de reseña | Clerk (moderator / admin) |
 | `DELETE` | `/api/reviews/:id` | Elimina reseña (soft delete) | Clerk (admin) |
 
+### Endpoint de analytics (Dashboard)
+
+| Método | Ruta | Descripción | Auth |
+|--------|------|-------------|------|
+| `GET` | `/api/analytics` | Métricas agregadas para el dashboard general | Clerk (admin) |
+
+Devuelve un snapshot de:
+- **reviews** — total, desglose por estado (`PUBLISHED / HIDDEN / DELETED / PENDING`), reseñas moderadas, últimas 7 y 30 días, promedio de rating de producto, distribución de ratings (1–5), serie temporal diaria de los últimos 30 días
+- **reports** — total, desglose por estado (`OPEN / RESOLVED / DISMISSED`), últimas 7 y 30 días
+- **eligibilities** — total habilitadas, consumidas y pendientes
+- **topSellers / topProducts** — top 10 por rating promedio (desde `RatingsCache`)
+
+**Uso desde el dashboard app** — el admin logueado obtiene su session token de Clerk y lo pasa como `Authorization: Bearer <token>`. El endpoint valida el JWT y verifica el rol `admin` en los metadatos de Clerk.
+
+```ts
+const token = await auth().getToken();
+const res = await fetch("https://proyecto-web-feedback-ellococasaca.vercel.app/api/analytics", {
+  headers: { Authorization: `Bearer ${token}` },
+});
+```
+
 ---
 
 ## Modelo de datos
@@ -121,6 +142,18 @@ ReviewReport      — reporte de una reseña por contenido inapropiado
 RatingsCache      — promedio pre-calculado por producto (PRODUCT) o seller (SELLER)
                     El cache SELLER = promedio de los promedios de sus productos
 ```
+
+---
+
+## Variables de entorno
+
+| Variable | Descripción | Requerida |
+|----------|-------------|:---------:|
+| `DATABASE_URL` | String de conexión PostgreSQL (Neon) | ✅ |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clave pública de Clerk | ✅ |
+| `CLERK_SECRET_KEY` | Clave secreta de Clerk | ✅ |
+| `OPENAI_API_KEY` | API key de OpenAI para moderación automática | ✅ |
+| `GENERAL_ADMIN_URL` | URL del dashboard admin general al que redirige el botón "Inicio" del header | — |
 
 ---
 
