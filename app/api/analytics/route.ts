@@ -24,14 +24,8 @@ export async function GET() {
     reviewsLast30Days,
     avgRating,
     ratingDist,
-    reportsByStatus,
-    reportsLast7Days,
-    reportsLast30Days,
-    eligibilityTotal,
-    eligibilityConsumed,
     topSellers,
     topProducts,
-    reviewsOverTime,
   ] = await Promise.all([
     prisma.review.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.review.count({ where: { isModerated: true } }),
@@ -46,11 +40,6 @@ export async function GET() {
       _count: { _all: true },
       where: { status: { not: "DELETED" } },
     }),
-    prisma.reviewReport.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.reviewReport.count({ where: { createdAt: { gte: daysAgo(7) } } }),
-    prisma.reviewReport.count({ where: { createdAt: { gte: daysAgo(30) } } }),
-    prisma.reviewEligibility.count(),
-    prisma.reviewEligibility.count({ where: { enabled: false } }),
     prisma.ratingsCache.findMany({
       where: { targetType: "SELLER" },
       orderBy: { averageRating: "desc" },
@@ -61,13 +50,6 @@ export async function GET() {
       orderBy: { averageRating: "desc" },
       take: 10,
     }),
-    prisma.$queryRaw<{ date: Date; count: bigint }[]>`
-      SELECT DATE_TRUNC('day', "createdAt") AS date, COUNT(*) AS count
-      FROM "Review"
-      WHERE "createdAt" >= NOW() - INTERVAL '30 days'
-      GROUP BY 1
-      ORDER BY 1 ASC
-    `,
   ]);
 
   const reviewStatusMap: Record<string, number> = {
@@ -78,15 +60,6 @@ export async function GET() {
   };
   for (const row of reviewsByStatus) {
     reviewStatusMap[row.status] = row._count._all;
-  }
-
-  const reportStatusMap: Record<string, number> = {
-    OPEN: 0,
-    RESOLVED: 0,
-    DISMISSED: 0,
-  };
-  for (const row of reportsByStatus) {
-    reportStatusMap[row.status] = row._count._all;
   }
 
   const productDist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -102,30 +75,15 @@ export async function GET() {
       averageRating: avgRating._avg.ratingProduct ?? 0,
       ratingDistribution: productDist,
     },
-    reports: {
-      total: Object.values(reportStatusMap).reduce((a, b) => a + b, 0),
-      byStatus: reportStatusMap,
-      last7Days: reportsLast7Days,
-      last30Days: reportsLast30Days,
-    },
-    eligibilities: {
-      total: eligibilityTotal,
-      consumed: eligibilityConsumed,
-      pending: eligibilityTotal - eligibilityConsumed,
-    },
     topSellers: topSellers.map((s) => ({
-      sellerId: s.targetId,
+      targetId: s.targetId,
       averageRating: s.averageRating,
       totalReviews: s.totalReviews,
     })),
     topProducts: topProducts.map((p) => ({
-      productId: p.targetId,
+      targetId: p.targetId,
       averageRating: p.averageRating,
       totalReviews: p.totalReviews,
-    })),
-    reviewsOverTime: reviewsOverTime.map((row) => ({
-      date: row.date.toISOString().split("T")[0],
-      count: Number(row.count),
     })),
   });
 }

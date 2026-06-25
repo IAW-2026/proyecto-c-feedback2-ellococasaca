@@ -117,10 +117,8 @@ El rating del seller **no se almacena en cada reseña**. Se calcula como el **pr
 | `GET` | `/api/analytics` | Métricas agregadas para el dashboard general | Clerk (admin) |
 
 Devuelve un snapshot de:
-- **reviews** — total, desglose por estado (`PUBLISHED / HIDDEN / DELETED / PENDING`), reseñas moderadas, últimas 7 y 30 días, promedio de rating de producto, distribución de ratings (1–5), serie temporal diaria de los últimos 30 días
-- **reports** — total, desglose por estado (`OPEN / RESOLVED / DISMISSED`), últimas 7 y 30 días
-- **eligibilities** — total habilitadas, consumidas y pendientes
-- **topSellers / topProducts** — top 10 por rating promedio (desde `RatingsCache`)
+- **reviews** — total, desglose por estado (`PUBLISHED / HIDDEN / DELETED / PENDING`), reseñas moderadas, últimas 7 y 30 días, promedio de rating, distribución de ratings (1–5)
+- **topSellers / topProducts** — top 10 por rating promedio (desde `RatingsCache`), con campos `targetId`, `averageRating`, `totalReviews`
 
 **Uso desde el dashboard app** — el admin logueado obtiene su session token de Clerk y lo pasa como `Authorization: Bearer <token>`. El endpoint valida el JWT y verifica el rol `admin` en los metadatos de Clerk.
 
