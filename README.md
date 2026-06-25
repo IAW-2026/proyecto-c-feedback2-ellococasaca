@@ -125,7 +125,41 @@ Devuelve un snapshot de:
 **Uso desde el dashboard app** — el admin logueado obtiene su session token de Clerk y lo pasa como `Authorization: Bearer <token>`. El endpoint valida el JWT y verifica el rol `admin` en los metadatos de Clerk.
 
 ```ts
-const token = await auth().getToken();
+const token = await auth.getToken();
+const res = await fetch("https://proyecto-web-feedback-ellococasaca.vercel.app/api/analytics", {
+  headers: { Authorization: `Bearer ${token}` },
+});
+```
+
+---
+
+## Integración con Super Admin
+
+La página de administración externa (Super Admin) consume directamente los endpoints de esta app en lugar de usar las páginas internas `/feedback/admin`. A continuación los endpoints relevantes para cada acción administrativa:
+
+### Acciones disponibles vía API
+
+| Acción | Endpoint | Rol requerido |
+|--------|----------|:-------------:|
+| Ver métricas globales | `GET /api/analytics` | admin |
+| Listar reseñas de un seller | `GET /api/reviews/seller/:sellerId?limit=N&skip=N` | público |
+| Listar reseñas de un producto | `GET /api/reviews/product/:productId?limit=N&skip=N` | público |
+| Ver rating de un seller | `GET /api/seller-ratings/:sellerId` | público |
+| Ver rating de un producto | `GET /api/product-ratings/:productId` | público |
+| Eliminar una reseña | `DELETE /api/reviews/:id` | admin |
+| Moderar una reseña (ocultar/publicar) | `PATCH /api/reviews/:id/moderate` | admin / moderator |
+| Resolver un reporte | — | *pendiente* |
+| Buscar reseñas (texto libre) | — | *pendiente* |
+| Listar todos los sellers con ratings | — | *pendiente* |
+
+Los endpoints marcados como *pendiente* aún no existen como API REST; la funcionalidad equivalente solo está disponible en las páginas SSR internas.
+
+### Cómo autenticar desde la Super Admin
+
+El Super Admin pasa el JWT de Clerk del usuario admin logueado como `Authorization: Bearer <token>`. No hay secreto compartido — el endpoint verifica el JWT directamente con Clerk y chequea que el rol sea `admin`:
+
+```ts
+const token = await auth.getToken();
 const res = await fetch("https://proyecto-web-feedback-ellococasaca.vercel.app/api/analytics", {
   headers: { Authorization: `Bearer ${token}` },
 });
@@ -152,7 +186,7 @@ RatingsCache      — promedio pre-calculado por producto (PRODUCT) o seller (SE
 | `DATABASE_URL` | String de conexión PostgreSQL (Neon) | ✅ |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clave pública de Clerk | ✅ |
 | `CLERK_SECRET_KEY` | Clave secreta de Clerk | ✅ |
-| `OPENAI_API_KEY` | API key de OpenAI para moderación automática | ✅ |
+| `ANTHROPIC_API_KEY` | API key de Anthropic (Claude) para moderación automática | ✅ |
 | `GENERAL_ADMIN_URL` | URL del dashboard admin general al que redirige el botón "Inicio" del header | — |
 
 ---
