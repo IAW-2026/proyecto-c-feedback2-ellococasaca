@@ -27,6 +27,8 @@ export default async function FeedbackLayout({
     redirect("/");
   }
 
+  const generalAdminUrl = process.env.GENERAL_ADMIN_URL ?? "/";
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-50">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-6 py-6 sm:px-10 lg:px-12">
@@ -45,12 +47,12 @@ export default async function FeedbackLayout({
             </div>
 
             <nav className="flex flex-wrap items-center gap-2">
-              <Link
+              <a
                 className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-white/10"
-                href="/"
+                href={generalAdminUrl}
               >
                 Inicio
-              </Link>
+              </a>
               {accessibleWindows.map((role) => (
                 <Link
                   key={role}
