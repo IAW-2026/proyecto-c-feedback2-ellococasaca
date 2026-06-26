@@ -84,6 +84,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const review = await prisma.$transaction(async (tx) => {
+      // If a previously admin-deleted review exists, hard-delete it so the unique
+      // constraint on orderId doesn't block the buyer from re-submitting.
+      const deletedReview = await tx.review.findFirst({
+        where: { orderId, status: "DELETED" },
+        select: { id: true },
+      });
+      if (deletedReview) {
+        await tx.reviewReport.deleteMany({ where: { reviewId: deletedReview.id } });
+        await tx.review.delete({ where: { id: deletedReview.id } });
+      }
+
       const createdReview = await tx.review.create({
         data: {
           orderId,
