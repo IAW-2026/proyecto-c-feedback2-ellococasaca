@@ -11,7 +11,7 @@ export async function GET(
   const take = Math.min(parseInt(searchParams.get("limit") ?? "10", 10), 100);
   const skip = Math.max(parseInt(searchParams.get("skip") ?? "0", 10), 0);
 
-  const where = { productId, status: { not: "DELETED" as const } };
+  const where = { productId, status: "PUBLISHED" as const };
 
   const [reviews, total, cache] = await Promise.all([
     prisma.review.findMany({
