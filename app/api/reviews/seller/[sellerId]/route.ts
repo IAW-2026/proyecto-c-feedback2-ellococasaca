@@ -1,10 +1,17 @@
 import { NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { isInterServiceRequest } from "@/lib/inter-service-auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ sellerId: string }> }
 ) {
+  if (!isInterServiceRequest(request)) {
+    const { userId } = await auth();
+    if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { sellerId } = await params;
 
   const searchParams = request.nextUrl.searchParams;

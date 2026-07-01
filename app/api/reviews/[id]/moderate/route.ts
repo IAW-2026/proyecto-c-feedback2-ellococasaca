@@ -3,6 +3,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { prisma } from "@/lib/prisma";
 import { refreshRatingsCache } from "@/lib/ratings-cache";
+import { isInterServiceRequest } from "@/lib/inter-service-auth";
 
 const ALLOWED_STATUSES = ["PUBLISHED", "HIDDEN"] as const;
 type ModerationStatus = (typeof ALLOWED_STATUSES)[number];
@@ -11,14 +12,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await currentUser();
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const roles = normalizeRoles(user.publicMetadata);
-  if (!roles.includes("moderator") && !roles.includes("admin")) {
-    return Response.json({ error: "Insufficient permissions." }, { status: 403 });
+  if (!isInterServiceRequest(request)) {
+    const user = await currentUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const roles = normalizeRoles(user.publicMetadata);
+    if (!roles.includes("moderator") && !roles.includes("admin"))
+      return Response.json({ error: "Insufficient permissions." }, { status: 403 });
   }
 
   const { id } = await params;

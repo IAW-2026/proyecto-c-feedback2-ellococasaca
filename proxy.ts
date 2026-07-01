@@ -16,6 +16,11 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
+  const secret = process.env.INTER_SERVICE_SECRET;
+  if (secret && request.headers.get("x-inter-service-secret") === secret) {
+    return NextResponse.next();
+  }
+
   if (!isPublicRoute(request)) {
     await auth.protect();
   }

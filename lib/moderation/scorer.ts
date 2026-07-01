@@ -1,4 +1,4 @@
-﻿import { SEVERE, MODERATE, MILD, type WordEntry } from "./word-list";
+﻿import { SEVERE, MODERATE, FLAG, type WordEntry } from "./word-list";
 
 export interface ScorerMatch {
   label: string;
@@ -43,7 +43,7 @@ export function scoreComment(text: string): ScorerResult {
   const matches = [
     ...matchEntries(normalized, SEVERE),
     ...matchEntries(normalized, MODERATE),
-    ...matchEntries(normalized, MILD),
+    ...matchEntries(normalized, FLAG),
   ];
   const score = matches.reduce((sum, match) => sum + match.weight * match.count, 0);
   return { score, matches };

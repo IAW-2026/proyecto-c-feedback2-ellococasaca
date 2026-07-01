@@ -2,23 +2,29 @@ import { NextRequest } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { prisma } from "@/lib/prisma";
+import { isInterServiceRequest } from "@/lib/inter-service-auth";
 
 export async function GET(request: NextRequest) {
-  const user = await currentUser();
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const roles = normalizeRoles(user.publicMetadata);
-  if (!roles.includes("buyer")) {
-    return Response.json({ error: "Only buyers can access purchases." }, { status: 403 });
-  }
-
   const searchParams = request.nextUrl.searchParams;
+
+  let buyerId: string;
+  if (isInterServiceRequest(request)) {
+    const param = searchParams.get("buyerId");
+    if (!param) return Response.json({ error: "buyerId is required for inter-service calls." }, { status: 400 });
+    buyerId = param;
+  } else {
+    const user = await currentUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const roles = normalizeRoles(user.publicMetadata);
+    if (!roles.includes("buyer"))
+      return Response.json({ error: "Only buyers can access purchases." }, { status: 403 });
+    buyerId = user.id;
+  }
+
   const take = Math.min(parseInt(searchParams.get("limit") ?? "10", 10), 100);
   const skip = Math.max(parseInt(searchParams.get("skip") ?? "0", 10), 0);
 
-  const where = { buyerId: user.id };
+  const where = { buyerId };
 
   const [eligibilities, total] = await Promise.all([
     prisma.reviewEligibility.findMany({

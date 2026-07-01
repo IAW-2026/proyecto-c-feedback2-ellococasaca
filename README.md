@@ -74,16 +74,29 @@ El rating del seller **no se almacena en cada reseña**. Se calcula como el **pr
 
 ## API REST
 
+### Autenticación
+
+Todos los endpoints aceptan dos métodos alternativos:
+
+- **Clerk JWT** — sesión de usuario válida (cookie de sesión o `Authorization: Bearer <token>`). El rol requerido varía por endpoint.
+- **Inter-service secret** — header `x-inter-service-secret: <INTER_SERVICE_SECRET>`. Bypasea Clerk completamente. Todas las apps del entorno **deben pasar este header** en sus llamadas server-to-server.
+
+Si ninguno es válido, el endpoint devuelve `401`.
+
+> Los endpoints de buyer (`/api/buyer/purchases`, `/api/buyer/purchases/eligible/[productId]`) requieren el query param `?buyerId=<id>` cuando se llaman con inter-service secret, ya que el ID del comprador no se puede inferir sin sesión Clerk.
+
+---
+
 ### Endpoints inter-servicio
 
-| Método | Ruta | Descripción | Auth | Llamado por |
-|--------|------|-------------|------|-------------|
-| `POST` | `/api/reviews/enable` | Habilita elegibilidad de reseña tras entrega | `x-inter-service-secret` (opcional) | Shipping App |
-| `POST` | `/api/reviews` | Crea una reseña con moderación automática | Clerk (buyer) | Buyer App |
-| `GET` | `/api/reviews/product/:productId` | Reseñas paginadas de un producto | Pública | Buyer App |
-| `GET` | `/api/reviews/seller/:sellerId` | Reseñas paginadas de un vendedor | Pública | Buyer App |
-| `GET` | `/api/seller-ratings/:sellerId` | Rating promedio del seller (promedio de productos) | Pública | Seller App |
-| `GET` | `/api/product-ratings/:productId` | Rating promedio del producto | Pública | Seller App |
+| Método | Ruta | Descripción | Auth mínima |
+|--------|------|-------------|-------------|
+| `POST` | `/api/reviews/enable` | Habilita elegibilidad de reseña tras entrega | inter-service secret |
+| `POST` | `/api/reviews` | Crea una reseña con moderación automática | Clerk (buyer) |
+| `GET` | `/api/reviews/product/:productId` | Reseñas paginadas de un producto | Clerk o inter-service |
+| `GET` | `/api/reviews/seller/:sellerId` | Reseñas paginadas de un vendedor | Clerk o inter-service |
+| `GET` | `/api/seller-ratings/:sellerId` | Rating promedio del seller | Clerk o inter-service |
+| `GET` | `/api/product-ratings/:productId` | Rating promedio del producto | Clerk o inter-service |
 
 > **`POST /api/reviews`** — body: `{ orderId, productId, sellerId, productRating (1-5), comment }`. El campo `sellerRating` fue eliminado; el rating del seller se deriva de los productos.
 
