@@ -4,24 +4,24 @@ import { normalizeRoles } from "@/lib/clerk-roles";
 import { prisma } from "@/lib/prisma";
 import { refreshRatingsCache } from "@/lib/ratings-cache";
 import { buildModerationReportReason, moderateComment } from "@/lib/moderation";
+import { isInterServiceRequest } from "@/lib/inter-service-auth";
 
 export async function POST(request: NextRequest) {
-  const user = await currentUser();
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const roles = normalizeRoles(user.publicMetadata);
-  if (!roles.includes("buyer")) {
-    return Response.json({ error: "Only buyers can create reviews." }, { status: 403 });
-  }
-
   let body: unknown;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  if (!isInterServiceRequest(request))
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = await currentUser();
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const roles = normalizeRoles(user.publicMetadata);
+  if (!roles.includes("buyer"))
+    return Response.json({ error: "Only buyers can create reviews." }, { status: 403 });
 
   const { orderId, productId, sellerId, productRating, comment } =
     body as {
@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
       productRating?: number;
       comment?: string;
     };
+
+  const buyerId = user.id;
 
   if (!orderId || !productId || !sellerId || !comment?.trim()) {
     return Response.json({ error: "Missing required fields." }, { status: 400 });
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
     where: { orderId },
   });
 
-  if (!eligibility || eligibility.buyerId !== user.id || !eligibility.enabled) {
+  if (!eligibility || eligibility.buyerId !== buyerId || !eligibility.enabled) {
     return Response.json({ error: "Order not eligible for review." }, { status: 403 });
   }
 
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
       const createdReview = await tx.review.create({
         data: {
           orderId,
-          buyerId: user.id,
+          buyerId,
           sellerId: eligibility.sellerId,
           productId,
           ratingProduct: productRating as number,

@@ -7,10 +7,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ productId: string }> }
 ) {
-  if (!isInterServiceRequest(request)) {
-    const { userId } = await auth();
-    if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!isInterServiceRequest(request))
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { userId } = await auth();
+  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const { productId } = await params;
 

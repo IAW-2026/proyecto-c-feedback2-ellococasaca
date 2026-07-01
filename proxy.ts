@@ -6,21 +6,11 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/",
-  // Inter-service endpoints (auth via INTER_SERVICE_SECRET header)
-  "/api/reviews/enable",
-  // Public read-only data
-  "/api/reviews/product/(.*)",
-  "/api/reviews/seller/(.*)",
-  "/api/product-ratings/(.*)",
-  "/api/seller-ratings/(.*)",
+  // All API routes handle their own auth (INTER_SERVICE_SECRET or Clerk)
+  "/api/(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
-  const secret = process.env.INTER_SERVICE_SECRET;
-  if (secret && request.headers.get("x-inter-service-secret") === secret) {
-    return NextResponse.next();
-  }
-
   if (!isPublicRoute(request)) {
     await auth.protect();
   }

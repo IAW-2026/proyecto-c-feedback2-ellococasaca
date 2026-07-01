@@ -7,14 +7,12 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let reporterId: string;
-  if (isInterServiceRequest(request)) {
-    reporterId = "system:inter-service";
-  } else {
-    const { userId } = await auth();
-    if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    reporterId = userId;
-  }
+  if (!isInterServiceRequest(request))
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { userId } = await auth();
+  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const reporterId = userId;
 
   const { id } = await params;
 

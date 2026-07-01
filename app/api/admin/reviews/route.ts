@@ -5,14 +5,14 @@ import { normalizeRoles } from "@/lib/clerk-roles";
 import { isInterServiceRequest } from "@/lib/inter-service-auth";
 
 export async function GET(request: NextRequest) {
-  if (!isInterServiceRequest(request)) {
-    const user = await currentUser();
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const roles = normalizeRoles(user.publicMetadata);
-    if (!roles.includes("admin"))
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  if (!isInterServiceRequest(request))
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = await currentUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const roles = normalizeRoles(user.publicMetadata);
+  if (!roles.includes("admin"))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "50"), 50);

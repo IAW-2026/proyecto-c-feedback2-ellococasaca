@@ -8,13 +8,14 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!isInterServiceRequest(request)) {
-    const user = await currentUser();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    const roles = normalizeRoles(user.publicMetadata);
-    if (!roles.includes("admin"))
-      return Response.json({ error: "Only admins can delete reviews." }, { status: 403 });
-  }
+  if (!isInterServiceRequest(request))
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = await currentUser();
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const roles = normalizeRoles(user.publicMetadata);
+  if (!roles.includes("admin"))
+    return Response.json({ error: "Only admins can delete reviews." }, { status: 403 });
 
   const { id } = await params;
 
