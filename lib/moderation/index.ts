@@ -11,8 +11,8 @@ export interface ModerationResult {
   matchedLabels: string[];
 }
 
-const THRESHOLD_REJECT = 50; // score >= 50 -> auto-reject locally
-const THRESHOLD_AI = 15; // score 15-49 -> consult Claude; score < 15 -> auto-approve locally
+const THRESHOLD_REJECT = 3; // score >= 3 -> auto-ban locally
+const THRESHOLD_AI = 1;    // score 1-2  -> consult Claude; score 0 -> auto-approve locally
 
 export async function moderateComment(
   comment: string,

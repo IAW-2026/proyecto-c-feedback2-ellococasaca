@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { prisma } from "@/lib/prisma";
+import { isInterServiceRequest } from "@/lib/inter-service-auth";
 
 const daysAgo = (days: number) => {
   const d = new Date();
@@ -8,13 +9,12 @@ const daysAgo = (days: number) => {
   return d;
 };
 
-export async function GET() {
-  const user = await currentUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-  const roles = normalizeRoles(user.publicMetadata);
-  if (!roles.includes("admin")) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+export async function GET(request: Request) {
+  if (!isInterServiceRequest(request)) {
+    const user = await currentUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const roles = normalizeRoles(user.publicMetadata);
+    if (!roles.includes("admin")) return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const [

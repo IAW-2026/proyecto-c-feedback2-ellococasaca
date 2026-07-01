@@ -2,26 +2,31 @@ import { NextRequest } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { normalizeRoles } from "@/lib/clerk-roles";
 import { prisma } from "@/lib/prisma";
+import { isInterServiceRequest } from "@/lib/inter-service-auth";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ productId: string }> }
 ) {
-  const user = await currentUser();
-  if (!user) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const roles = normalizeRoles(user.publicMetadata);
-  if (!roles.includes("buyer")) {
-    return Response.json({ error: "Only buyers can check eligibility." }, { status: 403 });
+  let buyerId: string;
+  if (isInterServiceRequest(request)) {
+    const param = request.nextUrl.searchParams.get("buyerId");
+    if (!param) return Response.json({ error: "buyerId is required for inter-service calls." }, { status: 400 });
+    buyerId = param;
+  } else {
+    const user = await currentUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const roles = normalizeRoles(user.publicMetadata);
+    if (!roles.includes("buyer"))
+      return Response.json({ error: "Only buyers can check eligibility." }, { status: 403 });
+    buyerId = user.id;
   }
 
   const { productId } = await params;
 
   const eligibilities = await prisma.reviewEligibility.findMany({
     where: {
-      buyerId: user.id,
+      buyerId,
       productIds: { has: productId },
     },
   });

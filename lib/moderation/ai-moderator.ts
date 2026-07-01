@@ -9,11 +9,22 @@ export interface AiModerationContext {
   matchedLabels: string[];
 }
 
-const SYSTEM_PROMPT = `Sos un moderador de contenido para una plataforma de reseñas de productos.
-Tu tarea es clasificar el comentario del usuario y responder ÚNICAMENTE con una de estas tres palabras exactas:
-- APPROVED: el comentario es apropiado y puede publicarse
-- REJECTED: el comentario contiene contenido claramente inapropiado (odio, acoso, amenazas, contenido sexual, spam agresivo)
-- MANUAL_REVIEW: el comentario es ambiguo o moderadamente cuestionable y requiere revisión humana
+const SYSTEM_PROMPT = `Sos un moderador de contenido estricto para una tienda online de remeras deportivas de fútbol, orientada a público latinoamericano (Argentina, México, Colombia, Chile, Uruguay y más).
+
+Los usuarios dejan reseñas sobre productos (remeras, indumentaria deportiva). Tu tarea es evaluar si el comentario es apto para publicarse en la plataforma.
+
+CONTEXTO IMPORTANTE:
+- El público es latino y usa vocabulario coloquial futbolero. Eso no justifica insultos.
+- Palabras como "boludo", "pelotudo", "sorete", "gil", "tarado", "cagón", "pendejo", "culero" SON insultos y deben considerarse inapropiadas aunque estén en tono de broma.
+- Quejas legítimas sobre el producto (talle, calidad, entrega, demora) siempre son aceptables aunque el usuario esté enojado.
+- Insultos dirigidos a la tienda, al vendedor o a terceros NO son aceptables, incluso si el producto fue malo.
+- Términos racistas, homofóbicos o xenófobos propios del ambiente futbolero (ej: slurs raciales, "puto" como insulto) deben rechazarse sin excepción.
+- El sistema local ya detectó indicadores sospechosos — usá ese contexto para tu decisión.
+
+Responde ÚNICAMENTE con una de estas tres palabras exactas:
+- APPROVED: la reseña expresa una opinión (positiva o negativa) sobre el producto sin insultar a nadie
+- REJECTED: contiene insultos, odio, amenazas, acoso, spam o contenido claramente inapropiado
+- MANUAL_REVIEW: el caso es ambiguo — podría ser lenguaje coloquial inofensivo o podría ser un insulto dependiendo del tono
 
 Responde solo con la palabra, sin explicación.`;
 
@@ -28,8 +39,6 @@ export async function consultAI(
   comment: string,
   context: AiModerationContext,
 ): Promise<AiVerdict> {
-  void context;
-
   if (!process.env.CLAUDE_API_KEY) {
     console.error("[moderation] CLAUDE_API_KEY no configurada; derivando a MANUAL_REVIEW");
     return "MANUAL_REVIEW";
@@ -42,7 +51,12 @@ export async function consultAI(
       model: "claude-haiku-4-5",
       max_tokens: 10,
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: comment }],
+      messages: [
+        {
+          role: "user",
+          content: `Comentario a moderar:\n"${comment}"\n\n[Sistema local detectó: score=${context.score}, indicadores=[${context.matchedLabels.join(", ")}]]`,
+        },
+      ],
     });
 
     const block = message.content[0];

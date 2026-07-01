@@ -1,14 +1,19 @@
 import { NextRequest } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { isInterServiceRequest } from "@/lib/inter-service-auth";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  let reporterId: string;
+  if (isInterServiceRequest(request)) {
+    reporterId = "system:inter-service";
+  } else {
+    const { userId } = await auth();
+    if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    reporterId = userId;
   }
 
   const { id } = await params;
@@ -33,7 +38,7 @@ export async function POST(
   const report = await prisma.reviewReport.create({
     data: {
       reviewId: id,
-      reporterId: userId,
+      reporterId,
       reason: reason.trim(),
       status: "OPEN",
     },
