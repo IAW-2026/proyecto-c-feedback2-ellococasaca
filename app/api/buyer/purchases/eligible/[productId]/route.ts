@@ -8,19 +8,16 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ productId: string }> }
 ) {
-  let buyerId: string;
-  if (isInterServiceRequest(request)) {
-    const param = request.nextUrl.searchParams.get("buyerId");
-    if (!param) return Response.json({ error: "buyerId is required for inter-service calls." }, { status: 400 });
-    buyerId = param;
-  } else {
-    const user = await currentUser();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    const roles = normalizeRoles(user.publicMetadata);
-    if (!roles.includes("buyer"))
-      return Response.json({ error: "Only buyers can check eligibility." }, { status: 403 });
-    buyerId = user.id;
-  }
+  if (!isInterServiceRequest(request))
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = await currentUser();
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const roles = normalizeRoles(user.publicMetadata);
+  if (!roles.includes("buyer"))
+    return Response.json({ error: "Only buyers can check eligibility." }, { status: 403 });
+
+  const buyerId = user.id;
 
   const { productId } = await params;
 

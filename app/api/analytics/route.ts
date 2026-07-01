@@ -10,12 +10,13 @@ const daysAgo = (days: number) => {
 };
 
 export async function GET(request: Request) {
-  if (!isInterServiceRequest(request)) {
-    const user = await currentUser();
-    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-    const roles = normalizeRoles(user.publicMetadata);
-    if (!roles.includes("admin")) return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  if (!isInterServiceRequest(request))
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const user = await currentUser();
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const roles = normalizeRoles(user.publicMetadata);
+  if (!roles.includes("admin")) return Response.json({ error: "Forbidden" }, { status: 403 });
 
   const [
     reviewsByStatus,
