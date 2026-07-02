@@ -1,0 +1,45 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ShipmentStatus {
+  PENDING
+  PREPARING
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+  CANCELED
+}
+
+model Shipment {
+  id                String          @id @default(cuid())
+  orderId           String          @map("order_id")
+  chargeId          String?         @map("charge_id")
+  buyerId           String          @map("buyer_id") 
+  sellerId          String          @map("seller_id")  
+  courierId         String?
+  productIds        String[]        @default([])
+  status            ShipmentStatus  @default(PENDING)
+  trackingCode      String          @unique @map("tracking_code")
+  estimatedDelivery DateTime?       @map("estimated_delivery")
+  addressSnapshot   Json            @map("address_snapshot")
+  events            TrackingEvent[]
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  @@map("shipments")
+}
+
+model TrackingEvent {
+  id          String         @id @default(cuid())
+  shipmentId  String         @map("shipment_id")
+  shipment    Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  status      ShipmentStatus
+  location    String?
+  description String?
+  timestamp   DateTime       @default(now())
+  @@map("tracking_events")
+}

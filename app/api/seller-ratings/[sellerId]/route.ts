@@ -34,7 +34,7 @@ export async function GET(
   // Fallback: compute seller rating as average of per-product averages
   const productGroups = await prisma.review.groupBy({
     by: ["productId"],
-    where: { sellerId, status: { not: "DELETED" } },
+    where: { sellerId, status: "PUBLISHED" },
     _avg: { ratingProduct: true },
     _count: { id: true },
   });

@@ -1,22 +1,32 @@
-import { auth } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { isInterServiceRequest } from "@/lib/inter-service-auth";
+import { normalizeRoles } from "@/lib/clerk-roles";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ productId: string }> }
 ) {
-  if (!isInterServiceRequest(request))
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  let isPrivilegedUser = false;
 
-  const { userId } = await auth();
-  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isInterServiceRequest(request)) {
+    const user = await currentUser();
+    if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const roles = normalizeRoles(user.publicMetadata);
+    isPrivilegedUser = roles.includes("admin") || roles.includes("moderator");
+  }
 
   const { productId } = await params;
 
+  // Inter-service y usuarios sin privilegios solo ven PUBLISHED.
+  // Admin y moderator ven todo excepto DELETED para poder moderar.
+  const statusFilter = isPrivilegedUser
+    ? { not: "DELETED" as const }
+    : ("PUBLISHED" as const);
+
   const [reviews, cache] = await Promise.all([
     prisma.review.findMany({
-      where: { productId, status: { not: "DELETED" } },
+      where: { productId, status: statusFilter },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -24,6 +34,7 @@ export async function GET(
         ratingProduct: true,
         comment: true,
         createdAt: true,
+        status: true,
       },
     }),
     prisma.ratingsCache.findUnique({
@@ -31,23 +42,29 @@ export async function GET(
     }),
   ]);
 
-  const totalReviews = reviews.length;
+  // El average siempre refleja solo reviews PUBLISHED (igual que el caché).
+  const publishedReviews = isPrivilegedUser
+    ? reviews.filter((r) => r.status === "PUBLISHED")
+    : reviews;
+
   const averageRating =
     cache?.averageRating ??
-    (totalReviews > 0
-      ? reviews.reduce((sum, r) => sum + r.ratingProduct, 0) / totalReviews
+    (publishedReviews.length > 0
+      ? publishedReviews.reduce((sum, r) => sum + r.ratingProduct, 0) /
+        publishedReviews.length
       : 0);
 
   return Response.json({
     productId,
     averageRating: Math.round(averageRating * 10) / 10,
-    totalReviews,
+    totalReviews: reviews.length,
     reviews: reviews.map((r) => ({
       reviewId: r.id,
       buyerId: r.buyerId,
       rating: r.ratingProduct,
       comment: r.comment,
       createdAt: r.createdAt,
+      ...(isPrivilegedUser && { status: r.status }),
     })),
   });
 }
