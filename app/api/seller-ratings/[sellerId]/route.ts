@@ -8,10 +8,10 @@ export async function GET(
   { params }: { params: Promise<{ sellerId: string }> }
 ) {
   if (!isInterServiceRequest(request))
-    return Response.json({ error: "Unauthorized" }, { status: 403 });
+    return Response.json({ error: "Unauthorized service key" }, { status: 401 });
 
   const user = await currentUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return Response.json({ error: "Unauthorized clerk user" }, { status: 401 });
 
   const roles = normalizeRoles(user.publicMetadata);
   if (!roles.includes("buyer") && !roles.includes("seller"))
