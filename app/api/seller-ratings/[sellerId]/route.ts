@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ sellerId: string }> }
 ) {
   if (!isInterServiceRequest(request))
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return Response.json({ error: "Unauthorized" }, { status: 403 });
 
   const user = await currentUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
