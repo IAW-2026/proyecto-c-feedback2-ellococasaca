@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { normalizeRoles } from "@/lib/clerk-roles";
 import { isInterServiceRequest } from "@/lib/inter-service-auth";
 
 export async function GET(
@@ -10,8 +11,12 @@ export async function GET(
   if (!isInterServiceRequest(request))
     return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId } = await auth();
-  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await currentUser();
+  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const roles = normalizeRoles(user.publicMetadata);
+  if (!roles.includes("buyer") && !roles.includes("seller"))
+    return Response.json({ error: "Only buyers and sellers can access seller reviews." }, { status: 403 });
 
   const { sellerId } = await params;
 
