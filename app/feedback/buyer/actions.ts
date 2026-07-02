@@ -1,5 +1,10 @@
 "use server";
 
+// @deprecated La creación de reseñas fue migrada al endpoint POST /api/reviews,
+// que es el canal oficial para todas las apps externas. Esta server action queda
+// deshabilitada funcionalmente (devuelve error inmediato) pero el código se conserva
+// hasta confirmar que no hay dependencias activas.
+
 import { currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -39,6 +44,15 @@ export async function createBuyerReview(
   formData: FormData,
 ): Promise<BuyerReviewActionState> {
   void previousState;
+  void formData;
+
+  // @deprecated: usar POST /api/reviews en su lugar.
+  return {
+    error:
+      "Esta vía de creación está deshabilitada. Las reseñas deben crearse a través del endpoint POST /api/reviews.",
+  };
+
+  // — Código original conservado debajo. No se ejecuta. —
 
   const user = await currentUser();
   const userId = user?.id;
@@ -58,7 +72,7 @@ export async function createBuyerReview(
   const comment = toStringValue(formData.get("comment"));
   const ratingProduct = toPositiveInt(toStringValue(formData.get("ratingProduct")));
 
-  const fieldErrors: BuyerReviewActionState["fieldErrors"] = {};
+  const fieldErrors: NonNullable<BuyerReviewActionState["fieldErrors"]> = {};
 
   if (!orderId) {
     fieldErrors.orderId = "El orderId es obligatorio.";
@@ -88,19 +102,19 @@ export async function createBuyerReview(
     },
   });
 
-  if (!eligibility || eligibility.buyerId !== userId) {
+  if (!eligibility || eligibility!.buyerId !== userId) {
     return {
       error: "No encontramos una orden habilitada para que crees esta reseña.",
     };
   }
 
-  if (!eligibility.enabled) {
+  if (!eligibility!.enabled) {
     return {
       error: "La reseña todavía no está habilitada para esta orden.",
     };
   }
 
-  if (!eligibility.productIds.includes(productId)) {
+  if (!eligibility!.productIds.includes(productId)) {
     return {
       error: "El producto no pertenece a la orden habilitada.",
     };
@@ -119,8 +133,8 @@ export async function createBuyerReview(
     moderation.method === "claude" || moderation.outcome !== "APPROVED";
 
   const reviewData = {
-    buyerId: userId,
-    sellerId: eligibility.sellerId,
+    buyerId: userId!,
+    sellerId: eligibility!.sellerId,
     productId,
     ratingProduct: ratingProductValue,
     comment,
@@ -148,7 +162,7 @@ export async function createBuyerReview(
     };
   }
 
-  await refreshRatingsCache(productId, eligibility.sellerId);
+  await refreshRatingsCache(productId, eligibility!.sellerId);
   revalidatePath("/feedback/buyer");
 
   if (moderation.outcome === "REJECTED") {

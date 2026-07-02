@@ -22,6 +22,12 @@ export function BuyerReviewForm() {
         </h3>
       </div>
 
+      <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+        <span className="font-semibold">Formulario obsoleto.</span> La creación de reseñas
+        se realiza a través del endpoint <span className="font-mono">POST /api/reviews</span>.
+        Este formulario no está activo.
+      </div>
+
       {state.error ? (
         <p className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           {state.error}

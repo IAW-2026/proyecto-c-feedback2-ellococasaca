@@ -178,6 +178,8 @@ El script `build` en `package.json` corre `prisma migrate deploy && prisma gener
 
 Carga datos de prueba en la base de datos real (no es un mock en memoria). Permite que **todos los roles tengan datos visibles desde el primer arranque** sin necesidad de crear reseñas manualmente.
 
+Desde julio 2026 este archivo se genera junto con seeds equivalentes para las otras 4 apps del ecosistema (seller, buyer, payment, shipping) para que las 5 bases de datos cuenten **una sola historia consistente** (mismos `clerkId`, mismo `orderId` cruzado, mismos productos). Ver `seeds/` en la raíz del repo y la sección 5.
+
 ### Cómo ejecutarlo
 
 ```bash
@@ -188,9 +190,7 @@ Es idempotente: usa `ON CONFLICT ... DO UPDATE` en cada tabla, así que puede ej
 
 ### IDs de usuarios Clerk
 
-El SQL usa los `sub` reales de Clerk. **Si cambia el entorno (local, staging, producción) los IDs cambian** y hay que actualizar el archivo con los IDs correctos.
-
-Los IDs actuales en el archivo corresponden a:
+El SQL usa los `sub` reales de Clerk para las 4 cuentas demo "canónicas". **Si cambia el entorno (local, staging, producción) los IDs cambian** y hay que actualizar el archivo con los IDs correctos.
 
 | Rol | Email esperado | Clerk sub en el SQL |
 |---|---|---|
@@ -199,50 +199,20 @@ Los IDs actuales en el archivo corresponden a:
 | moderator | moderator.feedback@example.com | `user_3EY16ziKMUxsmaAXntfuJajRpIR` |
 | admin | admin.feedback@example.com | `user_3EY1BlufGgMT4Sbl0VIjABwoIUe` |
 
-Para obtener el `sub` de un usuario: Clerk Dashboard → Users → click en el usuario → copiar el "User ID" (empieza con `user_`).
+El resto de los `clerkId` que aparecen en el archivo (patrón `user_seed_*`) son **placeholders sintéticos**: no corresponden a cuentas Clerk reales, sirven solo para dar volumen realista a listados, ratings y a la cola del moderador. Para obtener el `sub` real de un usuario: Clerk Dashboard → Users → click en el usuario → copiar el "User ID" (empieza con `user_`).
 
 ### Qué inserta cada sección
 
-#### ReviewEligibility (3 filas)
+El dataset simula ~90 días de tráfico moderado/bajo (ver sección 5 para el detalle completo del flujo generado):
 
-Habilita al buyer para crear reseñas sobre 3 órdenes distintas. Las órdenes `order_001`, `order_002` y `order_003` tienen `enabled: true`. Estas órdenes **no tienen `Review` asociada todavía**, así que el formulario de buyer puede usarlas para crear nuevas reseñas.
+- **ReviewEligibility** (~130 filas): una fila por cada orden que llegó a `DELIVERED` dentro de la ventana simulada. `enabled: true` en las que el buyer todavía no dejó reseña (utilizables desde el formulario de buyer sin tocar nada más), `enabled: false` en las que ya fueron consumidas por una `Review`.
+- **Review** (~85 filas): generadas solo para una fracción de las órdenes entregadas (tasa de reseña ~60%), con distribución de rating realista (mayoría 4–5 estrellas) y texto en español. Incluye variedad de `status` (`PUBLISHED`, `HIDDEN`, algunas `DELETED` para probar la vista de admin) e `isModerated`/`moderationReason` siguiendo el mismo formato que produce `lib/moderation.ts`.
+- **ReviewReport**: un puñado de reportes sobre reseñas `HIDDEN`/`DELETED` o de rating bajo, con estados mixtos `OPEN`/`RESOLVED`/`DISMISSED` para que `/feedback/moderator` tenga cola real desde el arranque.
+- **RatingsCache**: calculado **replicando exactamente** el algoritmo de `lib/ratings-cache.ts` — promedio de `ratingProduct` solo entre reviews `PUBLISHED` por producto, y promedio-de-promedios por vendedor sobre los productos con al menos una reseña publicada. No son valores inventados, son la agregación real de las filas de `Review` insertadas.
 
-#### Review (5 filas)
+Las 4 cuentas canónicas (buyer/seller/moderator/admin) están sobre-representadas a propósito respecto al resto para que, iniciando sesión con esas cuentas reales de Clerk, haya suficiente historial para probar manualmente el flujo completo (órdenes pendientes, en tránsito, entregadas sin reseñar, reseñas publicadas y una oculta).
 
-Cubre todos los estados para que cada rol vea datos al entrar:
-
-| ID | Orden | Estado | `isModerated` | Propósito |
-|---|---|---|---|---|
-| `rev_001` | `order_004` | `PUBLISHED` | `false` | Reseña normal visible para seller y admin |
-| `rev_002` | `order_005` | `PUBLISHED` | `false` | Segunda reseña normal |
-| `rev_003` | `order_006` | `PUBLISHED` | `true` | Reseña que pasó por moderación y quedó publicada |
-| `rev_004` | `order_007` | `HIDDEN` | `true` | Reseña ocultada (el moderador la puede volver a publicar) |
-| `rev_005` | `order_008` | `PUBLISHED` | `false` | Rating bajo — genera variedad en el promedio del caché |
-
-Notar que las órdenes de las reviews (`order_004` a `order_008`) son **distintas** a las de `ReviewEligibility` (`order_001` a `order_003`). Esto es correcto: las eligibilities son para órdenes todavía sin reseña; las reviews ya existen sobre otras órdenes.
-
-#### ReviewReport (3 filas)
-
-| ID | Review reportada | Estado | Descripción |
-|---|---|---|---|
-| `report_001` | `rev_004` (HIDDEN) | `OPEN` | Aparece en la cola del moderador |
-| `report_002` | `rev_005` (PUBLISHED) | `OPEN` | Aparece en la cola del moderador |
-| `report_003` | `rev_003` (PUBLISHED) | `RESOLVED` | Reporte cerrado — solo visible en historial futuro |
-
-La página `/feedback/moderator` filtra por `status: "OPEN"`, así que muestra `report_001` y `report_002`.
-
-#### RatingsCache (4 filas)
-
-Promedios pre-cargados para las APIs de ratings:
-
-| Target | Tipo | Promedio | Total |
-|---|---|---|---|
-| `product_001` | PRODUCT | 3.0 | 2 |
-| `product_002` | PRODUCT | 3.0 | 2 |
-| `product_003` | PRODUCT | 3.0 | 1 |
-| `user_3EY1BlufGgMT4Sbl0VIjABwoIUe` (seller) | SELLER | 3.4 | 5 |
-
-Estos valores se actualizan automáticamente vía `refreshRatingsCache()` cada vez que se crea una nueva reseña.
+Estos valores se recalculan automáticamente vía `refreshRatingsCache()` cada vez que se crea una nueva reseña real en la app; el seed solo pre-carga el estado inicial.
 
 ---
 
@@ -283,3 +253,27 @@ Admin
   └─ deleteReviewAction(reviewId)  [server action]
        → UPDATE Review SET status = "DELETED"
 ```
+
+---
+
+## 6. Seed multi-app: `seeds/`
+
+Este repo solo contiene la base de datos de Feedback, pero el flujo de la sección 5 depende de otras 4 apps (seller, buyer, payment, shipping) que viven en repos/bases distintas. `seeds/generate-seeds.mjs` genera datos de prueba **consistentes entre las 5 bases** a partir de los 4 `schema.prisma` de esas apps: mismos `clerkId` de comprador/vendedor, mismo `orderId` cruzado (`ord_ext_XXXXX`), mismos `productId`, y matemática de balances que cierra (crédito por venta, débito por payout, sin saldos negativos).
+
+```bash
+node seeds/generate-seeds.mjs <carpeta_salida>
+```
+
+Regenera los 5 archivos:
+
+| Archivo | Base destino | Orden de carga |
+|---|---|---|
+| `01-sellerapp.sql` | Seller App | 1º — crea Category, User(sellers), Product, ProductImage, Order, OrderDetail |
+| `02-buyerapp.sql` | Buyer App | 2º — crea User(buyers), Cart, CartItem, OrderShadow |
+| `03-paymentapp.sql` | Payment App | 3º — crea users, charges, payouts, balance_logs |
+| `04-shippingapp.sql` | Shipping App | 4º — crea shipments, tracking_events |
+| `prisma/mock-feedback.sql` | **esta app** | 5º — se ejecuta con `npm run seed:mock`, es el único que corre en este repo |
+
+Cada archivo es idempotente (`ON CONFLICT ... DO UPDATE`) igual que el mock original. `03-paymentapp.sql` además resincroniza la secuencia de `balance_logs.id` al final porque inserta ids explícitos.
+
+Todo el dataset se construye con un PRNG determinístico (semilla fija), así que volver a correr el script produce siempre el mismo resultado — útil para diffear cambios si se ajustan los parámetros (cantidad de vendedores/compradores/órdenes, ventana de fechas, tasas de reseña, etc., todos configurables al principio del script).

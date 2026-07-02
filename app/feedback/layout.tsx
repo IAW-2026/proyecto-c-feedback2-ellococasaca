@@ -67,31 +67,7 @@ export default async function FeedbackLayout({
           </div>
         </header>
 
-        <section className="grid flex-1 gap-6 lg:grid-cols-[300px_1fr]">
-          <aside className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-300">
-              Rol activo
-            </p>
-            <div className="mt-4 space-y-3">
-              {accessibleWindows.length > 0 ? (
-                accessibleWindows.map((role) => (
-                  <Link
-                    key={role}
-                    href={FEEDBACK_WINDOW_CONTENT[role].route}
-                    className="block rounded-3xl border border-white/10 bg-slate-900 px-4 py-4 transition hover:border-amber-300/40 hover:bg-slate-800"
-                  >
-                    <p className="text-sm font-semibold text-white">{FEEDBACK_WINDOW_CONTENT[role].title}</p>
-                    <p className="mt-1 text-sm text-slate-300">{FEEDBACK_WINDOW_CONTENT[role].subtitle}</p>
-                  </Link>
-                ))
-              ) : (
-                <p className="rounded-3xl border border-dashed border-white/15 bg-slate-900 px-4 py-4 text-sm text-slate-300">
-                  No tenés roles asignados en Clerk todavía.
-                </p>
-              )}
-            </div>
-          </aside>
-
+        <section className="flex-1">
           <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5">
             {children}
           </div>

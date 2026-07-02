@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Category {
+  id      String    @id
+  name    String    @unique
+  Product Product[]
+}
+
+model Product {
+  id           String         @id
+  sellerId     String
+  title        String
+  description  String?
+  price        Float
+  stock        Int
+  categoryId   String
+  season       String
+  team         String
+  size         String
+  version      ProductVersion
+  createdAt    DateTime       @default(now())
+  Category     Category       @relation(fields: [categoryId], references: [id])
+  User         User           @relation(fields: [sellerId], references: [clerkId])
+  ProductImage ProductImage[]
+  Sales        OrderDetail[]
+}
+
+model ProductImage {
+  id        String  @id
+  url       String
+  productId String
+  Product   Product @relation(fields: [productId], references: [id])
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  externalOrderId String?       @unique
+  buyerId         String
+  sellerId        String
+  Seller          User          @relation(fields: [sellerId], references: [clerkId])
+  totalPrice      Float
+  status          OrderStatus   @default(PENDING)
+  createdAt       DateTime      @default(now())
+  OrderDetails    OrderDetail[]
+}
+
+model OrderDetail {
+  id         String   @id @default(uuid())
+  productId  String
+  orderId    String
+  quantity   Int
+  unitPrice  Float?
+  totalPrice Float
+  createdAt  DateTime @default(now())
+  Product    Product  @relation(fields: [productId], references: [id])
+  Order      Order    @relation(fields: [orderId], references: [id])
+}
+
+model User {
+  clerkId     String    @id
+  email       String    @unique
+  name        String?
+  description String?
+  isVerified  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  Product     Product[]
+  orders      Order[]
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARED
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+}
+
+enum ProductVersion {
+  RETRO
+  HOME
+  AWAY
+}
