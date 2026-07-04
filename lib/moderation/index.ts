@@ -1,0 +1,53 @@
+﻿import { scoreComment } from "./scorer";
+import { consultAI } from "./ai-moderator";
+
+export type ModerationOutcome = "APPROVED" | "REJECTED" | "MANUAL_REVIEW";
+export type ModerationMethod = "local" | "claude";
+
+export interface ModerationResult {
+  outcome: ModerationOutcome;
+  method: ModerationMethod;
+  score: number;
+  matchedLabels: string[];
+}
+
+const THRESHOLD_REJECT = 3; // score >= 3 -> auto-ban locally
+const THRESHOLD_AI = 1;    // score 1-2  -> consult Claude; score 0 -> auto-approve locally
+
+export async function moderateComment(
+  comment: string,
+  context: { productId: string; orderId: string },
+): Promise<ModerationResult> {
+  const { score, matches } = scoreComment(comment);
+  const matchedLabels = matches.map((m) => m.label);
+
+  if (score >= THRESHOLD_REJECT) {
+    return { outcome: "REJECTED", method: "local", score, matchedLabels };
+  }
+
+  if (score < THRESHOLD_AI) {
+    return { outcome: "APPROVED", method: "local", score, matchedLabels };
+  }
+
+  // Dudoso (15 <= score < 50): consult Claude for final decision.
+  const aiVerdict = await consultAI(comment, {
+    productId: context.productId,
+    orderId: context.orderId,
+    score,
+    matchedLabels,
+  });
+
+  return {
+    outcome: aiVerdict,
+    method: "claude",
+    score,
+    matchedLabels,
+  };
+}
+
+export function buildModerationReportReason(result: ModerationResult): string {
+  const labels =
+    result.matchedLabels.length > 0 ? result.matchedLabels.join(", ") : "sin indicadores locales";
+
+  return `Moderacion automatica (${result.method}): ${result.outcome}. Score local: ${result.score}. Indicadores: ${labels}.`;
+}

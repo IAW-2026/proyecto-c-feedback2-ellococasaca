@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Review {
+  id             String       @id @default(cuid())
+  orderId        String       @unique
+  buyerId        String
+  sellerId       String
+  productId      String
+  ratingProduct  Int
+  comment        String
+  status             ReviewStatus @default(PUBLISHED)
+  isModerated        Boolean      @default(false)
+  moderationReason   String?
+  createdAt          DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  reports        ReviewReport[]
+}
+
+model ReviewEligibility {
+  id          String   @id @default(cuid())
+  orderId     String   @unique
+  shipmentId  String
+  buyerId     String
+  sellerId    String
+  productIds  String[]
+  deliveredAt DateTime
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model RatingsCache {
+  targetId       String
+  targetType     RatingTargetType
+  averageRating  Float
+  totalReviews   Int
+
+  @@id([targetId, targetType])
+}
+
+model ReviewReport {
+  id          String       @id @default(cuid())
+  reviewId    String
+  reporterId  String
+  reason      String
+  status      ReportStatus @default(OPEN)
+  createdAt   DateTime     @default(now())
+
+  review      Review       @relation(fields: [reviewId], references: [id])
+}
+
+enum ReviewStatus {
+  PUBLISHED
+  HIDDEN
+  DELETED
+  PENDING
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum RatingTargetType {
+  PRODUCT
+  SELLER
+}
